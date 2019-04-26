@@ -15,7 +15,7 @@ bbmap = 'shub://TomHarrop/singularity-containers:bbmap_38.00'
 # MAIN #
 ########
 
-all_chunks = [f'{x:03}' for x in range(1, ways + 1)]
+all_chunks = [str(x) for x in range(1, ways + 1)]
 
 #########
 # RULES #
@@ -27,10 +27,10 @@ rule partition:
     input:
         'data/flye_denovo_full.racon.fasta'
     output:
-        expand('output/010_data/chunks/{chunk}.fasta',
+        expand('output/010_data/chunks/chunk_{chunk}.fasta',
                chunk=all_chunks)
     params:
-        outfile = 'output/010_data/chunks/%.fasta',
+        outfile = 'output/010_data/chunks/chunk_%.fasta',
         ways = ways
     log:
         'logs/010_data/partition.log'
