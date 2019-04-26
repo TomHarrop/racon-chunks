@@ -15,7 +15,7 @@ bbmap = 'shub://TomHarrop/singularity-containers:bbmap_38.00'
 # MAIN #
 ########
 
-all_chunks = [str(x) for x in range(1, ways + 1)]
+all_chunks = [str(x) for x in range(0, ways)]
 
 #########
 # RULES #
