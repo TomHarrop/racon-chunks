@@ -99,7 +99,7 @@ rule map_reads:
                        suffix=['amb', 'ann', 'bwt', 'pac', 'sa']),
         fq = reads
     output:
-        'output/020_alignment/aln.sam'
+        temp('output/020_alignment/aln.sam')
     params:
         prefix = 'output/020_alignment/index'
     log:
