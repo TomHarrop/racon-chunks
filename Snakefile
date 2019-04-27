@@ -6,16 +6,21 @@ import multiprocessing
 # GLOBALS #
 ###########
 
-ways = 100
+n_chunks = 1000
 
 samtools = 'shub://TomHarrop/singularity-containers:samtools_1.9'
 bbmap = 'shub://TomHarrop/singularity-containers:bbmap_38.00'
+bwa = 'shub://TomHarrop/singularity-containers:bwa_0.7.17'
 
 ########
 # MAIN #
 ########
 
-all_chunks = [str(x) for x in range(0, ways)]
+all_chunks = [str(x) for x in range(0, n_chunks)]
+
+reads = 'data/pe_reads.fq'
+assembly = 'data/flye_denovo_full.racon.fasta'
+alignment = 'data/aln.sam'
 
 #########
 # RULES #
@@ -25,19 +30,17 @@ all_chunks = [str(x) for x in range(0, ways)]
 # chunk the fasta file
 rule partition:
     input:
-        'data/flye_denovo_full.racon.fasta'
+        assembly
     output:
-        expand('output/010_data/chunks/chunk_{chunk}.fasta',
+        expand('output/010_chunks/chunk_{chunk}.fasta',
                chunk=all_chunks)
     params:
-        outfile = 'output/010_data/chunks/chunk_%.fasta',
-        ways = ways
+        outfile = 'output/010_chunks/chunk_%.fasta',
+        ways = n_chunks
     log:
-        'logs/010_data/partition.log'
+        'logs/010_chunks/partition.log'
     threads:
         1
-    priority:
-        10
     singularity:
         bbmap
     shell:
@@ -48,14 +51,28 @@ rule partition:
         '2> {log}'
 
 # sort and index the bwa aln.sam file
+rule index_bam:
+    input:
+        bam = 'output/020_alignment/aln_sorted.bam',
+    output:
+        bai = 'output/020_alignment/aln_sorted.bam.bai'
+    log:
+        'logs/020_alignment/index_bam.log'
+    threads:
+        1
+    singularity:
+        samtools
+    shell:
+        'samtools index {output.bam} {output.bai} '
+        '2> {log}'
+
 rule sort_sam:
     input:
-        'data/aln.sam'
+        'output/020_alignment/aln.sam'
     output:
-        bam = 'output/010_data/aln_sorted.bam',
-        bai = 'output/010_data/aln_sorted.bam.bai'
+        bam = 'output/020_alignment/aln_sorted.bam',
     log:
-        'logs/010_data/sort_sam.log'
+        'logs/020_alignment/sort_sam.log'
     threads:
         multiprocessing.cpu_count()
     singularity:
@@ -69,6 +86,49 @@ rule sort_sam:
         '{input} '
         '> {output.bam} '
         '2> {log} '
-        '&& '
-        'samtools index {output.bam} {output.bai} '
-        '2>> {log}'
+
+# map the reads to the whole fasta
+rule map_reads:
+    input:
+        index = expand('output/020_alignment/index.{suffix}',
+                       suffix=['amb', 'ann', 'bwt', 'pac', 'sa']),
+        fq = reads
+    output:
+        'output/020_alignment/aln.sam'
+    params:
+        prefix = 'output/020_alignment/index'
+    log:
+        'logs/020_alignment/bwa-mem.log'
+    threads:
+        multiprocessing.cpu_count()
+    singularity:
+        bwa
+    shell:
+        'bwa mem '
+        '-t {threads} '
+        '-p -C '
+        '{params.prefix} '
+        '{input.fq} '
+        '> {output} '
+        '2> {log}'
+
+rule index_assembly:
+    input:
+        fasta = assembly
+    output:
+        expand('output/020_alignment/index.{suffix}',
+               suffix=['amb', 'ann', 'bwt', 'pac', 'sa'])
+    params:
+        prefix = 'output/020_alignment/index'
+    log:
+        'logs/020_alignment/bwa-index.log'
+    threads:
+        1
+    singularity:
+        bwa
+    shell:
+        'bwa index '
+        '-p {params.prefix} '
+        '{input.fasta} '
+        '2> {log} '
+
