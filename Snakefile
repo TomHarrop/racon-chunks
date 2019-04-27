@@ -26,6 +26,11 @@ alignment = 'data/aln.sam'
 # RULES #
 #########
 
+rule target:
+    input:
+        expand('output/010_chunks/chunk_{chunk}.fasta',
+               chunk=all_chunks),
+        'output/020_alignment/aln_sorted.bam'
 
 # chunk the fasta file
 rule partition:
@@ -63,7 +68,7 @@ rule index_bam:
     singularity:
         samtools
     shell:
-        'samtools index {output.bam} {output.bai} '
+        'samtools index {input.bam} {output.bai} '
         '2> {log}'
 
 rule sort_sam:
