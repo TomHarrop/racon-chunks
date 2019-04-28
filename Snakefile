@@ -48,7 +48,7 @@ rule target:
 rule racon:
     input:
         fasta = 'output/010_chunks/chunk_{chunk}.fasta',
-        aln = 'output/030_bam-chunks/chunk_{chunk}.bam',
+        aln = 'output/030_bam-chunks/chunk_{chunk}.sam',
         fq = 'output/040_read-chunks/chunk_{chunk}.fq'
     output:
         'output/050_racon/chunk_{chunk}.fasta'
@@ -60,6 +60,8 @@ rule racon:
         multiprocessing.cpu_count()
     singularity:
         racon
+    priority:
+        10
     shell:
         'timeout {params.wait_mins} '
         'racon '
@@ -70,7 +72,20 @@ rule racon:
         '> {output} '
         '2> {log}'
 
-
+# omg, racon can't read bam. fix this is chunking step?
+rule tmp_sam:
+    input:
+        'output/030_bam-chunks/chunk_{chunk}.bam'
+    output:
+        temp('output/030_bam-chunks/chunk_{chunk}.sam')
+    log:
+        'logs/030_bam-chunks/convert_{chunk}.log'
+    threads:
+        1
+    singularity:
+        samtools
+    shell:
+        'samtools view -h -O SAM {input} > {output} 2> {log}'
 
 # retrieve the reads from the bam chunk
 rule chunk_reads:
