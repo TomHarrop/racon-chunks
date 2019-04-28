@@ -20,7 +20,7 @@ def read_contig_list(contig_list):
 n_chunks = 1000
 
 samtools = 'shub://TomHarrop/singularity-containers:samtools_1.9'
-bbmap = 'shub://TomHarrop/singularity-containers:bbmap_38.00'
+bbmap = 'shub://TomHarrop/singularity-containers:bbmap_38.45'
 bwa = 'shub://TomHarrop/singularity-containers:bwa_0.7.17'
 
 ########
