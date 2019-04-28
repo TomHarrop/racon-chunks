@@ -60,12 +60,14 @@ rule chunk_bam:
         # the horrible sed command replaces the newlines with spaces in
         # contig_list. This allows the workflow to run before contig_list is
         # created. Adapted from https://stackoverflow.com/a/1252191
+        'contigs="$(sed -e \':a\' -e \'N\' -e \'$!ba\' '
+        '-e \'s/\\n/ /g\' {input.contig_list})" ; '
+        'echo "${contigs}" ; '
         'samtools view '
         '-h '
         '-O BAM '
         '{input.bam} '
-        '"$(sed -e \':a\' -e \'N\' -e \'$!ba\' '
-        '-e \'s/\\n/ /g\' {input.contig_list})" '
+        '"${contigs}" '
         '> {output} '
         '2> {log}'
 
