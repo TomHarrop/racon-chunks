@@ -55,7 +55,7 @@ rule racon:
     params:
         wait_mins = f'{wait_mins}m'
     log:
-        'logs/050_racon/chunk_{chunk_no}.log'
+        'logs/050_racon/chunk_{chunk}.log'
     threads:
         multiprocessing.cpu_count()
     singularity:
