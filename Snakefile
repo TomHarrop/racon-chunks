@@ -67,7 +67,7 @@ rule chunk_bam:
         '-h '
         '-O BAM '
         '{input.bam} '
-        '"${contigs}" '
+        '"${{contigs}}" '
         '> {output} '
         '2> {log}'
 
