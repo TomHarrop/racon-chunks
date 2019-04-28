@@ -50,8 +50,8 @@ rule chunk_bam:
         contig_list = 'output/010_chunks/chunk_{chunk}_contigs.txt'
     output:
         'output/030_bam-chunks/chunk_{chunk}.bam'
-    params:
-        contigs = lambda wildcards, input: read_contig_list(input.contig_list)
+    # params:
+    #     contigs = lambda wildcards, input: read_contig_list(input.contig_list)
     log:
         'logs/030_bam-chunks/view_{chunk}.log'
     threads:
