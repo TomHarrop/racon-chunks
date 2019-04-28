@@ -18,10 +18,12 @@ def read_contig_list(contig_list):
 ###########
 
 n_chunks = 1000
+wait_mins = 30
 
 samtools = 'shub://TomHarrop/singularity-containers:samtools_1.9'
 bbmap = 'shub://TomHarrop/singularity-containers:bbmap_38.45'
 bwa = 'shub://TomHarrop/singularity-containers:bwa_0.7.17'
+racon = 'shub://TomHarrop/singularity-containers:racon_1.3.2'
 
 ########
 # MAIN #
@@ -39,11 +41,38 @@ alignment = 'data/aln.sam'
 
 rule target:
     input:
-        expand('output/040_read-chunks/chunk_{chunk}.fq',
+        expand('output/050_racon/chunk_{chunk}.fasta',
                chunk=all_chunks)
 
+# run racon on the chunks
+rule racon:
+    input:
+        fasta = 'output/010_chunks/chunk_{chunk}.fasta',
+        aln = 'output/030_bam-chunks/chunk_{chunk}.bam',
+        fq = 'output/040_read-chunks/chunk_{chunk}.fq'
+    output:
+        'output/050_racon/chunk_{chunk}.fasta'
+    params:
+        wait_mins = f'{wait_mins}m'
+    log:
+        'logs/050_racon/chunk_{chunk_no}.log'
+    threads:
+        multiprocessing.cpu_count()
+    singularity:
+        racon
+    shell:
+        'timeout -v {params.wait_mins} '
+        'racon '
+        '-t {threads} '
+        '{input.fq} '
+        '{input.aln} '
+        '{input.fasta} '
+        '> {output} '
+        '2> {log}'
+
+
+
 # retrieve the reads from the bam chunk
-# think this is ok, but bbmap needs samtools
 rule chunk_reads:
     input:
         'output/030_bam-chunks/chunk_{chunk}.bam'
@@ -52,7 +81,7 @@ rule chunk_reads:
     log:
         'logs/040_read-chunks/chunk_reads_{chunk}.log'
     threads:
-        1
+        5
     singularity:
         bbmap
     shell:
