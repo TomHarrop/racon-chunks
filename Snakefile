@@ -2,6 +2,17 @@
 
 import multiprocessing
 
+
+#############
+# FUNCTIONS #
+#############
+
+def read_contig_list(contig_list):
+    with open(contig_list, 'rt') as f:
+        contigs = [x.rstrip() for x in f.readlines()]
+    return(' '.join(contigs))
+
+
 ###########
 # GLOBALS #
 ###########
@@ -32,7 +43,45 @@ rule target:
                chunk=all_chunks),
         'output/020_alignment/aln_sorted.bam'
 
+
+# subset the BAM by the chunk list
+rule chunk_bam:
+    input:
+        bam = 'output/020_alignment/aln_sorted.bam',
+        bai = 'output/020_alignment/aln_sorted.bam.bai',
+        contig_list = 'output/010_chunks/chunk_{chunk}_contigs.txt'
+    output:
+        'output/030_bam-chunks/chunk_{chunk}.bam'
+    params:
+        contigs = lambda wildcards, input: read_contig_list(input.contig_list)
+    log:
+        'logs/030_bam-chunks/view_{chunk}.log'
+    threads:
+        1
+    singularity:
+        samtools
+    shell:
+        'samtools view '
+        '-h '
+        '-O BAM '
+        '{input.bam} '
+        '{params.contigs} '
+        '> {output} '
+        '2> {log}'
+
 # chunk the fasta file
+rule list_contigs:
+    input:
+        'output/010_chunks/chunk_{chunk}.fasta'
+    output:
+        'output/010_chunks/chunk_{chunk}_contigs.txt'
+    threads:
+        1
+    singularity:
+        bbmap
+    shell:
+        'grep "^>" {input} | cut -d " " -f1 | sed -e \'s/>//g\' > {output}'
+
 rule partition:
     input:
         assembly
@@ -87,7 +136,7 @@ rule sort_sam:
         '-l 0 '
         '-m 7G '
         '-O BAM '
-        '-@ {threads} '
+        '--threads {threads} '
         '{input} '
         '> {output.bam} '
         '2> {log} '
@@ -111,7 +160,7 @@ rule map_reads:
     shell:
         'bwa mem '
         '-t {threads} '
-        '-p -C '
+        '-p '
         '{params.prefix} '
         '{input.fq} '
         '> {output} '
