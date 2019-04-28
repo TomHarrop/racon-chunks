@@ -60,8 +60,6 @@ rule racon:
         multiprocessing.cpu_count()
     singularity:
         racon
-    priority:
-        10
     shell:
         'timeout {params.wait_mins} '
         'racon '
@@ -72,7 +70,7 @@ rule racon:
         '> {output} '
         '2> {log}'
 
-# omg, racon can't read bam. fix this is chunking step?
+# omg, racon can't read bam. fix this in chunking step?
 rule tmp_sam:
     input:
         'output/030_bam-chunks/chunk_{chunk}.bam'
@@ -102,26 +100,11 @@ rule chunk_reads:
     shell:
         'reformat.sh '
         'in={input} '
-        'out=stdout.fq '
-        'primaryonly=t '
-        '-Xmx3g '
-        '2>> {log} '
-        '| '
-        'repair.sh '
-        'in=stdin.fq '
-        'out=stdout.fq '
-        'outs=/dev/null '
-        'allowidenticalnames=t '
-        '-Xmx3g '
-        '2>> {log} '
-        '| '
-        'reformat.sh '
-        'in=stdin.fq '
         'out={output} '
-        'int=t '
-        'addcolon=t '
+        'primaryonly=t '
+        'addslash=t '
         '-Xmx3g '
-        '2>> {log} '
+        '2> {log} '
 
 # subset the BAM by the chunk list
 rule chunk_bam:
