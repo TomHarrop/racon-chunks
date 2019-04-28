@@ -50,8 +50,6 @@ rule chunk_bam:
         contig_list = 'output/010_chunks/chunk_{chunk}_contigs.txt'
     output:
         'output/030_bam-chunks/chunk_{chunk}.bam'
-    # params:
-    #     contigs = lambda wildcards, input: read_contig_list(input.contig_list)
     log:
         'logs/030_bam-chunks/view_{chunk}.log'
     threads:
@@ -63,7 +61,8 @@ rule chunk_bam:
         '-h '
         '-O BAM '
         '{input.bam} '
-        '{params.contigs} '
+        '$(sed -e \':a\' -e \'N\' -e \'$!ba\''
+        '-e \'s/\n/ /g\' {input.contig_list}) '
         '> {output} '
         '2> {log}'
 
