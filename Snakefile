@@ -39,8 +39,44 @@ alignment = 'data/aln.sam'
 
 rule target:
     input:
-        expand('output/030_bam-chunks/chunk_{chunk}.bam',
+        expand('output/040_read-chunks/chunk_{chunk}.fq',
                chunk=all_chunks)
+
+# retrieve the reads from the bam chunk
+rule chunk_reads:
+    input:
+        'output/030_bam-chunks/chunk_{chunk}.bam'
+    output:
+        'output/040_read-chunks/chunk_{chunk}.fq'
+    log:
+        'logs/040_read-chunks/chunk_reads_{chunk}.log'
+    threads:
+        1
+    singularity:
+        bbmap
+    shell:
+        'reformat.sh '
+        'in={input} '
+        'out=stdout.fq '
+        'primaryonly=t '
+        '-Xmx3g '
+        '2>> {log} '
+        '| '
+        'repair.sh '
+        'in=stdin.fq '
+        'out=stdout.fq '
+        'outs=/dev/null '
+        'allowidenticalnames=t '
+        '-Xmx3g '
+        '2>> {log} '
+        '| '
+        'reformat.sh '
+        'in=stdin.fq '
+        'out={output} '
+        'int=t '
+        'addcolon=t'
+        '-Xmx3g '
+        '2>> {log} '
 
 # subset the BAM by the chunk list
 rule chunk_bam:
