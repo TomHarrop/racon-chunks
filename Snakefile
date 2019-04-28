@@ -62,12 +62,11 @@ rule chunk_bam:
         # created. Adapted from https://stackoverflow.com/a/1252191
         'contigs="$(sed -e \':a\' -e \'N\' -e \'$!ba\' '
         '-e \'s/\\n/ /g\' {input.contig_list})" ; '
-        'echo "${{contigs}}" ; '
         'samtools view '
         '-h '
         '-O BAM '
         '{input.bam} '
-        '"${{contigs}}" '
+        '${{contigs}} '
         '> {output} '
         '2> {log}'
 
