@@ -102,8 +102,6 @@ rule chunk_reads:
         'in={input} '
         'out={output} '
         'primaryonly=t '
-        'addslash=t '
-        'spaceslash=f '
         '-Xmx3g '
         '2> {log} '
 
