@@ -94,7 +94,7 @@ rule chunk_reads:
     log:
         'logs/040_read-chunks/chunk_reads_{chunk}.log'
     threads:
-        5
+        1
     singularity:
         bbmap
     shell:
