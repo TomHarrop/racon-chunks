@@ -64,7 +64,7 @@ rule chunk_bam:
         '-h '
         '-O BAM '
         '{input.bam} '
-        '"$(sed -e \':a\' -e \'N\' -e \'$!ba\''
+        '"$(sed -e \':a\' -e \'N\' -e \'$!ba\' '
         '-e \'s/\\n/ /g\' {input.contig_list})" '
         '> {output} '
         '2> {log}'
