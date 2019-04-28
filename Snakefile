@@ -39,10 +39,8 @@ alignment = 'data/aln.sam'
 
 rule target:
     input:
-        expand('output/010_chunks/chunk_{chunk}.fasta',
-               chunk=all_chunks),
-        'output/020_alignment/aln_sorted.bam'
-
+        expand('output/030_bam-chunks/chunk_{chunk}.bam',
+               chunk=all_chunks)
 
 # subset the BAM by the chunk list
 rule chunk_bam:
