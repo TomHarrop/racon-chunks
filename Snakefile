@@ -43,6 +43,7 @@ rule target:
                chunk=all_chunks)
 
 # retrieve the reads from the bam chunk
+# think this is ok, but bbmap needs samtools
 rule chunk_reads:
     input:
         'output/030_bam-chunks/chunk_{chunk}.bam'
