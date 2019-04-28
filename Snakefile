@@ -74,7 +74,7 @@ rule chunk_reads:
         'in=stdin.fq '
         'out={output} '
         'int=t '
-        'addcolon=t'
+        'addcolon=t '
         '-Xmx3g '
         '2>> {log} '
 
