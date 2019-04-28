@@ -57,12 +57,15 @@ rule chunk_bam:
     singularity:
         samtools
     shell:
+        # the horrible sed command replaces the newlines with spaces in
+        # contig_list. This allows the workflow to run before contig_list is
+        # created. Adapted from https://stackoverflow.com/a/1252191
         'samtools view '
         '-h '
         '-O BAM '
         '{input.bam} '
-        '$(sed -e \':a\' -e \'N\' -e \'$!ba\''
-        '-e \'s/\n/ /g\' {input.contig_list}) '
+        '"$(sed -e \':a\' -e \'N\' -e \'$!ba\''
+        '-e \'s/\n/ /g\' {input.contig_list})" '
         '> {output} '
         '2> {log}'
 
