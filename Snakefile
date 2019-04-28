@@ -61,7 +61,7 @@ rule racon:
     singularity:
         racon
     shell:
-        'timeout -v {params.wait_mins} '
+        'timeout {params.wait_mins} '
         'racon '
         '-t {threads} '
         '{input.fq} '
