@@ -85,6 +85,7 @@ rule filterbyname:
     singularity:
         bbmap
     shell:
+        'time '
         'filterbyname.sh '
         'in={input.fastq} '
         'names={input.names} '
@@ -200,7 +201,7 @@ rule map_reads:
     input:
         index = expand('output/020_alignment/index.{suffix}',
                        suffix=['amb', 'ann', 'bwt', 'pac', 'sa']),
-        fq = 'output/000_reads/reads.fq'
+        fq = reads
     output:
         temp('output/020_alignment/aln.sam')
     params:
@@ -219,57 +220,6 @@ rule map_reads:
         '{input.fq} '
         '> {output} '
         '2> {log}'
-
-# Racon can't deal with normal fastq read names where the pairs are identified
-# by :1 and :2. bwa-mem uses read order to identify pairs (not read names), so
-# if we verify the reads are paired correctly we can replace the name with a
-# single integer. We have to strip the description field (:1 or :2) with
-# reformat.sh before using rename.sh with default settings to name the reads
-# with an integer.
-rule rename_reads:
-    input:
-        reads
-    output:
-        'output/000_reads/reads.fq'
-    log:
-        'logs/000_reads/repair.log'
-    threads:
-        3
-    singularity:
-        bbmap
-    shell:
-        'head -n 1000000 {input} > {output}'
-        # 'head -n 10000000 {input} | '
-        # 'repair.sh '
-        # 'in=stdin.fq '
-        # 'out=stdout.fq '
-        # '-Xmx3g '
-        # '2> {log} '
-        # '| reformat.sh '
-        # 'in=stdin.fq '
-        # 'out={output} '
-        # 'int=t '
-        # 'trimreaddescription=t '
-        # 'addslash=t '
-        # 'spaceslash=f '
-        # '-Xmx3g '
-        # '2>> {log} '
-
-        # holy shit, this is not going well
-        # '| rename.sh '
-        # 'in=stdin.fq '
-        # 'out={output} '
-        # '-Xmx3g '
-        # '2>> {log} '
-        # awk replaces the ids in every fourth line with an incrementing
-        # integer. Requires gnu awk. Adapted from
-        # https://www.biostars.org/p/68477/#69089.
-        # 'gawk \'{{print (NR%4 == 1) ? "@" ++i : $0}}\' '
-        # '| reformat.sh '
-        # 'in=stdin.fq '
-        # 'out={output} '
-        # 'int=t '
-        # '2>> {log}'
 
 rule index_assembly:
     input:
