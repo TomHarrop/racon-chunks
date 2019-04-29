@@ -80,6 +80,8 @@ rule filterbyname:
         fastq = reads
     output:
         'output/040_read-chunks/chunk_{chunk}.fq'
+    log:
+        'logs/040_read-chunks/filterbyname_{chunk}.log'
     threads:
         1
     singularity:
