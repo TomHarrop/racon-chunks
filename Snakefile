@@ -20,11 +20,7 @@ def read_contig_list(contig_list):
 n_chunks = 1000
 wait_mins = 30
 
-samtools = 'shub://TomHarrop/singularity-containers:samtools_1.9'
-bbmap = 'shub://TomHarrop/singularity-containers:bbmap_38.45'
-bwa = 'shub://TomHarrop/singularity-containers:bwa_0.7.17'
-racon = 'shub://TomHarrop/singularity-containers:racon_1.3.2'
-biopython = 'shub://TomHarrop/singularity-containers:biopython_1.73'
+racon_chunks = 'shub://TomHarrop/singularity-containers:racon-chunks'
 
 ########
 # MAIN #
@@ -40,11 +36,13 @@ alignment = 'data/aln.sam'
 # RULES #
 #########
 
+singularity: racon_chunks
+
 rule target:
     input:
         expand('output/050_racon/chunk_{chunk}.fasta',
-               chunk=all_chunks)
-               # chunk=['124']) # just test the pipeline
+               # chunk=all_chunks)
+               chunk=['87']) # just test the pipeline
 
 # run racon on the chunks
 rule racon:
@@ -60,8 +58,6 @@ rule racon:
         'logs/050_racon/chunk_{chunk}.log'
     threads:
         multiprocessing.cpu_count()
-    singularity:
-        racon
     shell:
         'timeout {params.wait_mins} '
         'racon '
@@ -73,29 +69,35 @@ rule racon:
         '2> {log}'
 
 # retrieve the reads from the bam chunk
-# get a list of reads that are in the bamfile
-rule filterbyname:
+rule repair_reads:
     input:
-        names = 'output/030_bam-chunks/chunk_{chunk}.sam',
-        fastq = reads
+        r1 = 'output/040_read-chunks/chunk_{chunk}_r1.fq',
+        r2 = 'output/040_read-chunks/chunk_{chunk}_r2.fq'
     output:
         'output/040_read-chunks/chunk_{chunk}.fq'
     log:
-        'logs/040_read-chunks/filterbyname_{chunk}.log'
-    threads:
-        1
-    singularity:
-        bbmap
+        'logs/040_read-chunks/repair_reads_{chunk}.fq'
     shell:
-        'time '
-        'filterbyname.sh '
-        'in={input.fastq} '
-        'names={input.names} '
-        'include=t '
-        'int=t '
+        'repair.sh '
+        'in={input.r1} '
+        'in2={input.r2} '
+        'repair=t '
         'out={output} '
-        '-Xmx3g '
         '&> {log}'
+
+rule retrieve_reads:
+    input:
+        sam = 'output/030_bam-chunks/chunk_{chunk}.sam',
+        r1_idx = 'output/000_reads/r1.idx',
+        r2_idx = 'output/000_reads/r2.idx'
+    output:
+        r1 = temp('output/040_read-chunks/chunk_{chunk}_r1.fq'),
+        r2 = temp('output/040_read-chunks/chunk_{chunk}_r2.fq')
+    log:
+        'logs/040_read-chunks/retrieve_reads_{chunk}.log'
+    script:
+        'src/retrieve_reads.py'
+
 
 # subset the BAM by the chunk list
 rule chunk_bam:
@@ -109,8 +111,6 @@ rule chunk_bam:
         'logs/030_bam-chunks/view_{chunk}.log'
     threads:
         1
-    singularity:
-        samtools
     shell:
         # the horrible sed command replaces the newlines with spaces in
         # contig_list. This allows the workflow to run before contig_list is
@@ -134,8 +134,6 @@ rule list_contigs:
         'output/010_chunks/chunk_{chunk}_contigs.txt'
     threads:
         1
-    singularity:
-        bbmap
     shell:
         'grep "^>" {input} | cut -d " " -f1 | sed -e \'s/>//g\' > {output}'
 
@@ -152,8 +150,6 @@ rule partition:
         'logs/010_chunks/partition.log'
     threads:
         1
-    singularity:
-        bbmap
     shell:
         'partition.sh '
         'in={input} '
@@ -171,8 +167,6 @@ rule index_bam:
         'logs/020_alignment/index_bam.log'
     threads:
         1
-    singularity:
-        samtools
     shell:
         'samtools index {input.bam} {output.bai} '
         '2> {log}'
@@ -186,8 +180,6 @@ rule sort_sam:
         'logs/020_alignment/sort_sam.log'
     threads:
         multiprocessing.cpu_count()
-    singularity:
-        samtools
     shell:
         'samtools sort '
         '-l 0 '
@@ -212,8 +204,6 @@ rule map_reads:
         'logs/020_alignment/bwa-mem.log'
     threads:
         multiprocessing.cpu_count()
-    singularity:
-        bwa
     shell:
         'bwa mem '
         '-t {threads} '
@@ -235,11 +225,37 @@ rule index_assembly:
         'logs/020_alignment/bwa-index.log'
     threads:
         1
-    singularity:
-        bwa
     shell:
         'bwa index '
         '-p {params.prefix} '
         '{input.fasta} '
         '2> {log} '
+
+# index the reads
+rule index_reads:
+    input:
+        'output/000_reads/r{r}.fq'
+    output:
+        'output/000_reads/r{r}.idx'
+    script:
+        'src/index_reads.py'
+
+rule split_reads:
+    input:
+        reads
+    output:
+        r1 = 'output/000_reads/r1.fq',
+        r2 = 'output/000_reads/r2.fq'
+    log:
+        'logs/000_reads/split_reads.log'
+    threads:
+        1
+    shell:
+        'reformat.sh '
+        'in={input} '
+        'int=t '
+        'out={output.r1} '
+        'out2={output.r2} '
+        '&> {log}'
+
 
