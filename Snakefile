@@ -24,6 +24,7 @@ samtools = 'shub://TomHarrop/singularity-containers:samtools_1.9'
 bbmap = 'shub://TomHarrop/singularity-containers:bbmap_38.45'
 bwa = 'shub://TomHarrop/singularity-containers:bwa_0.7.17'
 racon = 'shub://TomHarrop/singularity-containers:racon_1.3.2'
+biopython = 'shub://TomHarrop/singularity-containers:biopython_1.73'
 
 ########
 # MAIN #
@@ -42,7 +43,8 @@ alignment = 'data/aln.sam'
 rule target:
     input:
         expand('output/050_racon/chunk_{chunk}.fasta',
-               chunk=all_chunks)
+               # chunk=all_chunks)
+               chunk=['124']) # just test the pipeline
 
 # run racon on the chunks
 rule racon:
@@ -70,40 +72,27 @@ rule racon:
         '> {output} '
         '2> {log}'
 
-# omg, racon can't read bam. fix this in chunking step?
-rule tmp_sam:
-    input:
-        'output/030_bam-chunks/chunk_{chunk}.bam'
-    output:
-        temp('output/030_bam-chunks/chunk_{chunk}.sam')
-    log:
-        'logs/030_bam-chunks/convert_{chunk}.log'
-    threads:
-        1
-    singularity:
-        samtools
-    shell:
-        'samtools view -h -O SAM {input} > {output} 2> {log}'
-
 # retrieve the reads from the bam chunk
-rule chunk_reads:
+# get a list of reads that are in the bamfile
+rule filterbyname:
     input:
-        'output/030_bam-chunks/chunk_{chunk}.bam'
+        names = 'output/030_bam-chunks/chunk_{chunk}.sam',
+        fastq = reads
     output:
         'output/040_read-chunks/chunk_{chunk}.fq'
-    log:
-        'logs/040_read-chunks/chunk_reads_{chunk}.log'
     threads:
         1
     singularity:
         bbmap
     shell:
-        'reformat.sh '
-        'in={input} '
+        'filterbyname.sh '
+        'in={input.fastq} '
+        'names={input.names} '
+        'include=t '
+        'int=t '
         'out={output} '
-        'primaryonly=t '
         '-Xmx3g '
-        '2> {log} '
+        '2> {log}'
 
 # subset the BAM by the chunk list
 rule chunk_bam:
@@ -112,7 +101,7 @@ rule chunk_bam:
         bai = 'output/020_alignment/aln_sorted.bam.bai',
         contig_list = 'output/010_chunks/chunk_{chunk}_contigs.txt'
     output:
-        'output/030_bam-chunks/chunk_{chunk}.bam'
+        'output/030_bam-chunks/chunk_{chunk}.sam'
     log:
         'logs/030_bam-chunks/view_{chunk}.log'
     threads:
@@ -127,7 +116,8 @@ rule chunk_bam:
         '-e \'s/\\n/ /g\' {input.contig_list})" ; '
         'samtools view '
         '-h '
-        '-O BAM '
+        '-F 256 '       # exclude secondary alignments
+        '-O SAM '
         '{input.bam} '
         '${{contigs}} '
         '> {output} '
@@ -210,7 +200,7 @@ rule map_reads:
     input:
         index = expand('output/020_alignment/index.{suffix}',
                        suffix=['amb', 'ann', 'bwt', 'pac', 'sa']),
-        fq = reads
+        fq = 'output/000_reads/reads.fq'
     output:
         temp('output/020_alignment/aln.sam')
     params:
@@ -229,6 +219,57 @@ rule map_reads:
         '{input.fq} '
         '> {output} '
         '2> {log}'
+
+# Racon can't deal with normal fastq read names where the pairs are identified
+# by :1 and :2. bwa-mem uses read order to identify pairs (not read names), so
+# if we verify the reads are paired correctly we can replace the name with a
+# single integer. We have to strip the description field (:1 or :2) with
+# reformat.sh before using rename.sh with default settings to name the reads
+# with an integer.
+rule rename_reads:
+    input:
+        reads
+    output:
+        'output/000_reads/reads.fq'
+    log:
+        'logs/000_reads/repair.log'
+    threads:
+        3
+    singularity:
+        bbmap
+    shell:
+        'head -n 1000000 {input} > {output}'
+        # 'head -n 10000000 {input} | '
+        # 'repair.sh '
+        # 'in=stdin.fq '
+        # 'out=stdout.fq '
+        # '-Xmx3g '
+        # '2> {log} '
+        # '| reformat.sh '
+        # 'in=stdin.fq '
+        # 'out={output} '
+        # 'int=t '
+        # 'trimreaddescription=t '
+        # 'addslash=t '
+        # 'spaceslash=f '
+        # '-Xmx3g '
+        # '2>> {log} '
+
+        # holy shit, this is not going well
+        # '| rename.sh '
+        # 'in=stdin.fq '
+        # 'out={output} '
+        # '-Xmx3g '
+        # '2>> {log} '
+        # awk replaces the ids in every fourth line with an incrementing
+        # integer. Requires gnu awk. Adapted from
+        # https://www.biostars.org/p/68477/#69089.
+        # 'gawk \'{{print (NR%4 == 1) ? "@" ++i : $0}}\' '
+        # '| reformat.sh '
+        # 'in=stdin.fq '
+        # 'out={output} '
+        # 'int=t '
+        # '2>> {log}'
 
 rule index_assembly:
     input:
