@@ -95,7 +95,7 @@ rule filterbyname:
         'int=t '
         'out={output} '
         '-Xmx3g '
-        '2> {log}'
+        '&> {log}'
 
 # subset the BAM by the chunk list
 rule chunk_bam:
