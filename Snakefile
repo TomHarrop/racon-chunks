@@ -43,8 +43,8 @@ alignment = 'data/aln.sam'
 rule target:
     input:
         expand('output/050_racon/chunk_{chunk}.fasta',
-               # chunk=all_chunks)
-               chunk=['124']) # just test the pipeline
+               chunk=all_chunks)
+               # chunk=['124']) # just test the pipeline
 
 # run racon on the chunks
 rule racon:
