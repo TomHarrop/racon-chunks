@@ -2,6 +2,8 @@
 
 from Bio import SeqIO
 
+print(sys.version)
+
 read_file = snakemake.input[0]
 db_file = snakemake.output[0]
 
