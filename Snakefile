@@ -95,6 +95,8 @@ rule retrieve_reads:
         r2 = temp('output/040_read-chunks/chunk_{chunk}_r2.fq')
     log:
         'logs/040_read-chunks/retrieve_reads_{chunk}.log'
+    benchmark:
+        'benchmarks/040_read-chunks/retrieve_reads_{chunk}.log'
     script:
         'src/retrieve_reads.py'
 
@@ -195,7 +197,8 @@ rule map_reads:
     input:
         index = expand('output/020_alignment/index.{suffix}',
                        suffix=['amb', 'ann', 'bwt', 'pac', 'sa']),
-        fq = reads
+        r1 = 'output/000_reads/r1.fq',
+        r2 = 'output/000_reads/r2.fq'
     output:
         temp('output/020_alignment/aln.sam')
     params:
@@ -207,9 +210,9 @@ rule map_reads:
     shell:
         'bwa mem '
         '-t {threads} '
-        '-p '
         '{params.prefix} '
-        '{input.fq} '
+        '{input.r1} '
+        '{input.r2} '
         '> {output} '
         '2> {log}'
 
@@ -253,9 +256,14 @@ rule split_reads:
     shell:
         'reformat.sh '
         'in={input} '
+        'out=stdout.fq '
+        'verifyinterleaved=t '
         'int=t '
+        'trimreaddescription=t '
+        '2> {log} '
+        '| rename.sh '
+        'in=stdin.fq '
         'out={output.r1} '
         'out2={output.r2} '
-        '&> {log}'
-
-
+        'int=t '
+        '2>> {log}'
