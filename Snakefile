@@ -288,4 +288,5 @@ rule split_reads:
         'samplerate={params.fraction} '
         'sampleseed={params.seed} '
         'out={output.r1} '
-        'out2={output.r2}'
+        'out2={output.r2} '
+        '2> {log}'
