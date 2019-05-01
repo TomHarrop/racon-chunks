@@ -19,8 +19,10 @@ def read_contig_list(contig_list):
 
 n_chunks = 1000
 wait_mins = 30
+fraction_to_map = 0.1,
+seed = 14
 
-racon_chunks = 'shub://TomHarrop/singularity-containers:racon-chunks'
+racon_chunks = 'shub://TomHarrop/singularity-containers:racon-chunks_py36'
 
 ########
 # MAIN #
@@ -56,6 +58,8 @@ rule racon:
         wait_mins = f'{wait_mins}m'
     log:
         'logs/050_racon/chunk_{chunk}.log'
+    benchmark:
+        'benchmark/050_racon/chunk_{chunk}.txt'
     threads:
         multiprocessing.cpu_count()
     shell:
@@ -77,6 +81,8 @@ rule repair_reads:
         'output/040_read-chunks/chunk_{chunk}.fq'
     log:
         'logs/040_read-chunks/repair_reads_{chunk}.fq'
+    benchmark:
+        'benchmark/040_read-chunks/repair_reads_{chunk}.txt'
     shell:
         'repair.sh '
         'in={input.r1} '
@@ -111,6 +117,8 @@ rule chunk_bam:
         'output/030_bam-chunks/chunk_{chunk}.sam'
     log:
         'logs/030_bam-chunks/view_{chunk}.log'
+    benchmark:
+        'benchmark/030_bam-chunks/view_{chunk}.txt'
     threads:
         1
     shell:
@@ -134,6 +142,8 @@ rule list_contigs:
         'output/010_chunks/chunk_{chunk}.fasta'
     output:
         'output/010_chunks/chunk_{chunk}_contigs.txt'
+    benchmark:
+        'benchmark/010_chunks/list_contigs_{chunk}.txt'
     threads:
         1
     shell:
@@ -150,6 +160,8 @@ rule partition:
         ways = n_chunks
     log:
         'logs/010_chunks/partition.log'
+    benchmark:
+        'benchmark/010_chunks/partition.txt'
     threads:
         1
     shell:
@@ -167,6 +179,8 @@ rule index_bam:
         bai = 'output/020_alignment/aln_sorted.bam.bai'
     log:
         'logs/020_alignment/index_bam.log'
+    benchmark:
+        'benchmark/020_alignment/index_bam.txt'
     threads:
         1
     shell:
@@ -180,6 +194,8 @@ rule sort_sam:
         bam = 'output/020_alignment/aln_sorted.bam',
     log:
         'logs/020_alignment/sort_sam.log'
+    benchmark:
+        'benchmark/020_alignment/sort_sam.txt'
     threads:
         multiprocessing.cpu_count()
     shell:
@@ -205,6 +221,8 @@ rule map_reads:
         prefix = 'output/020_alignment/index'
     log:
         'logs/020_alignment/bwa-mem.log'
+    benchmark:
+        'benchmark/020_alignment/bwa-mem.txt'
     threads:
         multiprocessing.cpu_count()
     shell:
@@ -226,6 +244,8 @@ rule index_assembly:
         prefix = 'output/020_alignment/index'
     log:
         'logs/020_alignment/bwa-index.log'
+    benchmark:
+        'benchmark/020_alignment/bwa-index.txt'
     threads:
         1
     shell:
@@ -240,6 +260,8 @@ rule index_reads:
         'output/000_reads/r{r}.fq'
     output:
         'output/000_reads/r{r}.idx'
+    benchmark:
+        'benchmark/000_reads/index_reads_r{r}.txt'
     script:
         'src/index_reads.py'
 
@@ -249,21 +271,21 @@ rule split_reads:
     output:
         r1 = 'output/000_reads/r1.fq',
         r2 = 'output/000_reads/r2.fq'
+    params:
+        fraction = fraction_to_map,
+        seed = seed
     log:
         'logs/000_reads/split_reads.log'
+    benchmark:
+        'benchmark/000_reads/split_reads.txt'
     threads:
         1
     shell:
         'reformat.sh '
         'in={input} '
-        'out=stdout.fq '
+        'int=t '
         'verifyinterleaved=t '
-        'int=t '
-        'trimreaddescription=t '
-        '2> {log} '
-        '| rename.sh '
-        'in=stdin.fq '
+        'samplerate={params.fraction} '
+        'sampleseed={params.seed} '
         'out={output.r1} '
-        'out2={output.r2} '
-        'int=t '
-        '2>> {log}'
+        'out2={output.r2}'
