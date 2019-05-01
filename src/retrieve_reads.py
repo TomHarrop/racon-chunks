@@ -13,7 +13,8 @@ r2_out = snakemake.output['r2']
 # get the ids
 with open(sam_file, 'rt') as f:
     reader = csv.reader(f, delimiter='\t')
-    sam_query_ids = [x[0] for x in reader if not x[0].startswith('@')]
+    sam_query_ids = sorted(set(
+        x[0] for x in reader if not x[0].startswith('@')))
 
 # open the dbs
 r1_db = SeqIO.index_db(r1_db_file)
