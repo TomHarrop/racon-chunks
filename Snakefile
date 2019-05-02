@@ -59,7 +59,7 @@ rule racon:
     log:
         'logs/050_racon/chunk_{chunk}.log'
     benchmark:
-        'benchmark/050_racon/chunk_{chunk}.txt'
+        'benchmarks/050_racon/chunk_{chunk}.txt'
     threads:
         multiprocessing.cpu_count()
     shell:
@@ -82,7 +82,7 @@ rule repair_reads:
     log:
         'logs/040_read-chunks/repair_reads_{chunk}.fq'
     benchmark:
-        'benchmark/040_read-chunks/repair_reads_{chunk}.txt'
+        'benchmarks/040_read-chunks/repair_reads_{chunk}.txt'
     shell:
         'repair.sh '
         'in={input.r1} '
@@ -118,7 +118,7 @@ rule chunk_bam:
     log:
         'logs/030_bam-chunks/view_{chunk}.log'
     benchmark:
-        'benchmark/030_bam-chunks/view_{chunk}.txt'
+        'benchmarks/030_bam-chunks/view_{chunk}.txt'
     threads:
         1
     shell:
@@ -143,7 +143,7 @@ rule list_contigs:
     output:
         'output/010_chunks/chunk_{chunk}_contigs.txt'
     benchmark:
-        'benchmark/010_chunks/list_contigs_{chunk}.txt'
+        'benchmarks/010_chunks/list_contigs_{chunk}.txt'
     threads:
         1
     shell:
@@ -161,7 +161,7 @@ rule partition:
     log:
         'logs/010_chunks/partition.log'
     benchmark:
-        'benchmark/010_chunks/partition.txt'
+        'benchmarks/010_chunks/partition.txt'
     threads:
         1
     shell:
@@ -180,7 +180,7 @@ rule index_bam:
     log:
         'logs/020_alignment/index_bam.log'
     benchmark:
-        'benchmark/020_alignment/index_bam.txt'
+        'benchmarks/020_alignment/index_bam.txt'
     threads:
         1
     shell:
@@ -195,7 +195,7 @@ rule sort_sam:
     log:
         'logs/020_alignment/sort_sam.log'
     benchmark:
-        'benchmark/020_alignment/sort_sam.txt'
+        'benchmarks/020_alignment/sort_sam.txt'
     threads:
         multiprocessing.cpu_count()
     shell:
@@ -222,7 +222,7 @@ rule map_reads:
     log:
         'logs/020_alignment/bwa-mem.log'
     benchmark:
-        'benchmark/020_alignment/bwa-mem.txt'
+        'benchmarks/020_alignment/bwa-mem.txt'
     threads:
         multiprocessing.cpu_count()
     shell:
@@ -245,7 +245,7 @@ rule index_assembly:
     log:
         'logs/020_alignment/bwa-index.log'
     benchmark:
-        'benchmark/020_alignment/bwa-index.txt'
+        'benchmarks/020_alignment/bwa-index.txt'
     threads:
         1
     shell:
@@ -261,7 +261,7 @@ rule index_reads:
     output:
         'output/000_reads/r{r}.idx'
     benchmark:
-        'benchmark/000_reads/index_reads_r{r}.txt'
+        'benchmarks/000_reads/index_reads_r{r}.txt'
     script:
         'src/index_reads.py'
 
@@ -277,7 +277,7 @@ rule split_reads:
     log:
         'logs/000_reads/split_reads.log'
     benchmark:
-        'benchmark/000_reads/split_reads.txt'
+        'benchmarks/000_reads/split_reads.txt'
     threads:
         1
     shell:
