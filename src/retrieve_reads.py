@@ -2,7 +2,29 @@
 
 from Bio import SeqIO
 import csv
-import warnings
+import logging
+import sys
+import sqlite3
+import platform
+import Bio
+
+# set up log
+logging.basicConfig(
+    filename=snakemake.log[0],
+    level=logging.DEBUG)
+
+# debug biopython issue
+logging.debug('sys.version')
+logging.debug(sys.version)
+logging.debug('sqlite3.version')
+logging.debug(sqlite3.version)
+logging.debug('platform.python_implementation()')
+logging.debug(platform.python_implementation())
+logging.debug('platform.platform()')
+logging.debug(platform.platform())
+logging.debug('Bio.__version__')
+logging.debug(Bio.__version__)
+
 
 r1_db_file = snakemake.input['r1_idx']
 r2_db_file = snakemake.input['r2_idx']
@@ -28,7 +50,7 @@ for read in sam_query_ids:
         r1_reads.append(r1_db[read])
         r2_reads.append(r2_db[read])
     except KeyError:
-            warnings.warn(f'{read} not in database')
+            logging.warning(f'{read} not in database')
             pass
 
 # write output

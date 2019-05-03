@@ -19,7 +19,7 @@ def read_contig_list(contig_list):
 
 n_chunks = 1000
 wait_mins = 30
-fraction_to_map = 0.1,
+fraction_to_map = 1
 seed = 14
 
 racon_chunks = 'shub://TomHarrop/singularity-containers:racon-chunks_py36'
@@ -43,8 +43,8 @@ singularity: racon_chunks
 rule target:
     input:
         expand('output/050_racon/chunk_{chunk}.fasta',
-               chunk=all_chunks)
-               # chunk=['87']) # just test the pipeline
+               # chunk=all_chunks)
+               chunk=['87']) # just test the pipeline
 
 # run racon on the chunks
 rule racon:
@@ -260,6 +260,8 @@ rule index_reads:
         'output/000_reads/r{r}.fq'
     output:
         'output/000_reads/r{r}.idx'
+    log:
+        'logs/000_reads/index_reads_r{r}.log'    
     benchmark:
         'benchmarks/000_reads/index_reads_r{r}.txt'
     script:
