@@ -2,10 +2,11 @@
 
 import Bio
 from Bio import SeqIO
-import sys
 import logging
-import sqlite3
+import os
 import platform
+import sqlite3
+import sys
 
 # set up log
 logging.basicConfig(
@@ -23,6 +24,8 @@ logging.debug('platform.platform()')
 logging.debug(platform.platform())
 logging.debug('Bio.__version__')
 logging.debug(Bio.__version__)
+logging.debug('os.environ')
+logging.debug(os.environ)
 
 
 read_file = snakemake.input[0]

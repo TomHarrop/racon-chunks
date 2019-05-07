@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
+import Bio
 from Bio import SeqIO
 import csv
 import logging
-import sys
-import sqlite3
+import os
 import platform
-import Bio
+import sqlite3
+import sys
 
 # set up log
 logging.basicConfig(
@@ -24,6 +25,8 @@ logging.debug('platform.platform()')
 logging.debug(platform.platform())
 logging.debug('Bio.__version__')
 logging.debug(Bio.__version__)
+logging.debug('os.environ')
+logging.debug(os.environ)
 
 
 r1_db_file = snakemake.input['r1_idx']

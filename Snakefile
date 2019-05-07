@@ -43,8 +43,8 @@ singularity: racon_chunks
 rule target:
     input:
         expand('output/050_racon/chunk_{chunk}.fasta',
-               # chunk=all_chunks)
-               chunk=['87']) # just test the pipeline
+               chunk=all_chunks)
+               # chunk=['87']) # just test the pipeline
 
 # run racon on the chunks
 rule racon:
@@ -261,7 +261,7 @@ rule index_reads:
     output:
         'output/000_reads/r{r}.idx'
     log:
-        'logs/000_reads/index_reads_r{r}.log'    
+        'logs/000_reads/index_reads_r{r}.log'
     benchmark:
         'benchmarks/000_reads/index_reads_r{r}.txt'
     script:
