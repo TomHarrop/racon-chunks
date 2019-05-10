@@ -43,7 +43,7 @@ for read_id_file in read_id_list:
     # check if id is already indexed
     for id in ids:
         if id in read_to_chunk:
-            read_to_chunk[id] = read_to_chunk[id].append(my_chunk_id)
+            read_to_chunk[id].append(my_chunk_id)
         else:
             read_to_chunk[id] = [my_chunk_id]
 
