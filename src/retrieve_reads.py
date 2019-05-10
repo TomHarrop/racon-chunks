@@ -22,6 +22,7 @@ read_no = snakemake.params['read_no']
 #                 'output/040_read-chunks/chunk_999.txt']
 # read_file = 'test/r1.fq'
 # outdir = 'test'
+# read_no = '1'
 
 # dict of chunk to outfile
 chunk_to_outfile = {os.path.basename(x).rstrip('.txt'):
@@ -47,26 +48,24 @@ for read_id_file in read_id_list:
         else:
             read_to_chunk[id] = [my_chunk_id]
 
-# initialise a dict of chunk to seqrecords
-chunk_to_seqrecords = {key: [] for key in set(os.path.basename(x).rstrip('.txt')
-                                              for x in read_id_list)}
 
-# read the fastq into memory
-logging.info(f'Reading {read_file}')
+# open a handle for each chunk
+logging.info(f'Opening file handles')
+chunk_to_handle = {x: open(chunk_to_outfile[x], 'wt')
+                   for x in chunk_to_outfile}
+
+# read through the fastq and write each file to the handles
+logging.info(f'Started reading {read_file}')
 for seq_rec in SeqIO.parse(read_file, 'fastq'):
     try:
         write_chunks = read_to_chunk[seq_rec.id]
-        # I don't think we can append a fastq record to a file, so we have to
-        # hold this in memory.
         for chunk in write_chunks:
-            chunk_to_seqrecords[chunk].append(seq_rec)
+            SeqIO.write(seq_rec, chunk_to_handle[chunk], 'fastq')
     except KeyError as e:
         logging.debug(f'Read {seq_rec.id} not in dict(read_to_chunk)')
 
-# write the output
-logging.info(f'Writing output to {outdir}')
-for chunk in chunk_to_seqrecords:
-    logging.info(f'Writing {chunk}')
-    SeqIO.write(chunk_to_seqrecords[chunk],
-                chunk_to_outfile[chunk],
-                'fastq')
+# close all the handles
+logging.info(f'Finished {read_file}')
+logging.info(f'Closing file handles')
+for chunk in chunk_to_handle:
+    chunk_to_handle[chunk].close()
