@@ -29,6 +29,7 @@ racon_chunks = 'shub://TomHarrop/singularity-containers:racon-chunks_py36'
 ########
 
 all_chunks = [str(x) for x in range(0, n_chunks)]
+all_chunks = ['87', '999'] # testing
 
 reads = 'data/pe_reads.fq'
 assembly = 'data/flye_denovo_full.racon.fasta'
@@ -44,7 +45,6 @@ rule target:
     input:
         expand('output/040_read-chunks/chunk_{chunk}.fq',
                chunk=all_chunks)
-               # chunk=['87', '999']) # just test the pipeline
 
 # run racon on the chunks
 rule racon:
@@ -109,7 +109,7 @@ rule retrieve_reads:
     log:
         'logs/040_read-chunks/retrieve_reads_r{r}.log'
     benchmark:
-        'benchmarks/040_read-chunks/retrieve_reads_r{r}.log'
+        'benchmarks/040_read-chunks/retrieve_reads_r{r}.txt'
     script:
         'src/retrieve_reads.py'
 

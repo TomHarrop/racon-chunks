@@ -20,9 +20,9 @@ read_no = snakemake.params['read_no']
 # dev
 # read_id_list = ['output/040_read-chunks/chunk_87.txt',
 #                 'output/040_read-chunks/chunk_999.txt']
-# read_file = 'test/r1.fq'
+# read_file = 'test/r2.fq'
 # outdir = 'test'
-# read_no = '1'
+# read_no = '2'
 
 # dict of chunk to outfile
 chunk_to_outfile = {os.path.basename(x).rstrip('.txt'):
