@@ -42,9 +42,9 @@ singularity: racon_chunks
 
 rule target:
     input:
-        expand('output/050_racon/chunk_{chunk}.fasta',
+        expand('output/040_read-chunks/chunk_{chunk}.fq',
                chunk=all_chunks)
-               # chunk=['87']) # just test the pipeline
+               # chunk=['87', '999']) # just test the pipeline
 
 # run racon on the chunks
 rule racon:
@@ -91,21 +91,47 @@ rule repair_reads:
         'out={output} '
         '&> {log}'
 
+
+# loop once throught the fastq and split reads accordingly
 rule retrieve_reads:
     input:
-        sam = 'output/030_bam-chunks/chunk_{chunk}.sam',
-        r1_idx = 'output/000_reads/r1.idx',
-        r2_idx = 'output/000_reads/r2.idx'
+        read_ids = expand('output/040_read-chunks/chunk_{chunk}.txt',
+                          chunk=all_chunks),
+        # use a subset for testing
+        fastq = 'test/r{r}.fq'
+        # fastq = 'output/000_reads/r{r}.fq'
     output:
-        r1 = temp('output/040_read-chunks/chunk_{chunk}_r1.fq'),
-        r2 = temp('output/040_read-chunks/chunk_{chunk}_r2.fq')
+        expand('output/040_read-chunks/chunk_{chunk}_r{{r}}.fq',
+               chunk=all_chunks)
+    params:
+        outdir = 'output/040_read-chunks',
+        read_no = '{r}'
     log:
-        'logs/040_read-chunks/retrieve_reads_{chunk}.log'
+        'logs/040_read-chunks/retrieve_reads_r{r}.log'
     benchmark:
-        'benchmarks/040_read-chunks/retrieve_reads_{chunk}.log'
+        'benchmarks/040_read-chunks/retrieve_reads_r{r}.log'
     script:
         'src/retrieve_reads.py'
 
+# get the list of read ids for each chunk
+rule extract_read_ids:
+    input:
+        'output/030_bam-chunks/chunk_{chunk}.sam'
+    output:
+        'output/040_read-chunks/chunk_{chunk}.txt'
+    log:
+        'logs/040_read-chunks/extract_read_ids_{chunk}.log'
+    benchmark:
+        'benchmarks/040_read-chunks/extract_read_ids_{chunk}.txt'
+    threads:
+        1
+    shell:
+        'samtools view  {input} '
+        '| cut -f1 '
+        '| sort '
+        '| uniq '
+        '> {output} '
+        '2> {log}'
 
 # subset the BAM by the chunk list
 rule chunk_bam:
