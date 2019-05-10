@@ -29,7 +29,7 @@ racon_chunks = 'shub://TomHarrop/singularity-containers:racon-chunks_py36'
 ########
 
 all_chunks = [str(x) for x in range(0, n_chunks)]
-all_chunks = ['87', '999'] # testing
+# all_chunks = ['87', '999'] # testing
 
 reads = 'data/pe_reads.fq'
 assembly = 'data/flye_denovo_full.racon.fasta'
@@ -43,7 +43,7 @@ singularity: racon_chunks
 
 rule target:
     input:
-        expand('output/040_read-chunks/chunk_{chunk}.fq',
+        expand('output/050_racon/chunk_{chunk}.fasta',
                chunk=all_chunks)
 
 # run racon on the chunks
@@ -51,7 +51,7 @@ rule racon:
     input:
         fasta = 'output/010_chunks/chunk_{chunk}.fasta',
         aln = 'output/030_bam-chunks/chunk_{chunk}.sam',
-        fq = 'output/040_read-chunks/chunk_{chunk}.fq'
+        fq = 'output/040_read-chunks/chunk_{chunk}_repaired.fq'
     output:
         'output/050_racon/chunk_{chunk}.fasta'
     params:
@@ -72,44 +72,38 @@ rule racon:
         '> {output} '
         '2> {log}'
 
-# retrieve the reads from the bam chunk
+# verify pairing has been maintained
 rule repair_reads:
     input:
-        r1 = 'output/040_read-chunks/chunk_{chunk}_r1.fq',
-        r2 = 'output/040_read-chunks/chunk_{chunk}_r2.fq'
-    output:
         'output/040_read-chunks/chunk_{chunk}.fq'
+    output:
+        'output/040_read-chunks/chunk_{chunk}_repaired.fq'
     log:
         'logs/040_read-chunks/repair_reads_{chunk}.fq'
     benchmark:
         'benchmarks/040_read-chunks/repair_reads_{chunk}.txt'
     shell:
         'repair.sh '
-        'in={input.r1} '
-        'in2={input.r2} '
+        'in={input} '
         'repair=t '
         'out={output} '
         '&> {log}'
 
-
-# loop once throught the fastq and split reads accordingly
+# loop once through the fastq and split reads accordingly
 rule retrieve_reads:
     input:
         read_ids = expand('output/040_read-chunks/chunk_{chunk}.txt',
                           chunk=all_chunks),
-        # use a subset for testing
-        fastq = 'test/r{r}.fq'
-        # fastq = 'output/000_reads/r{r}.fq'
+        fastq = reads
     output:
-        expand('output/040_read-chunks/chunk_{chunk}_r{{r}}.fq',
+        expand('output/040_read-chunks/chunk_{chunk}.fq',
                chunk=all_chunks)
     params:
         outdir = 'output/040_read-chunks',
-        read_no = '{r}'
     log:
-        'logs/040_read-chunks/retrieve_reads_r{r}.log'
+        'logs/040_read-chunks/retrieve_reads.log'
     benchmark:
-        'benchmarks/040_read-chunks/retrieve_reads_r{r}.txt'
+        'benchmarks/040_read-chunks/retrieve_reads.txt'
     script:
         'src/retrieve_reads.py'
 
@@ -280,41 +274,3 @@ rule index_assembly:
         '{input.fasta} '
         '2> {log} '
 
-# index the reads
-rule index_reads:
-    input:
-        'output/000_reads/r{r}.fq'
-    output:
-        'output/000_reads/r{r}.idx'
-    log:
-        'logs/000_reads/index_reads_r{r}.log'
-    benchmark:
-        'benchmarks/000_reads/index_reads_r{r}.txt'
-    script:
-        'src/index_reads.py'
-
-rule split_reads:
-    input:
-        reads
-    output:
-        r1 = 'output/000_reads/r1.fq',
-        r2 = 'output/000_reads/r2.fq'
-    params:
-        fraction = fraction_to_map,
-        seed = seed
-    log:
-        'logs/000_reads/split_reads.log'
-    benchmark:
-        'benchmarks/000_reads/split_reads.txt'
-    threads:
-        1
-    shell:
-        'reformat.sh '
-        'in={input} '
-        'int=t '
-        'verifyinterleaved=t '
-        'samplerate={params.fraction} '
-        'sampleseed={params.seed} '
-        'out={output.r1} '
-        'out2={output.r2} '
-        '2> {log}'

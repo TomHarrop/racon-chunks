@@ -15,7 +15,7 @@ logging.basicConfig(
 read_id_list = snakemake.input['read_ids']
 read_file = snakemake.input['fastq']
 outdir = snakemake.params['outdir']
-read_no = snakemake.params['read_no']
+# read_no = snakemake.params['read_no']
 
 # dev
 # read_id_list = ['output/040_read-chunks/chunk_87.txt',
@@ -27,8 +27,7 @@ read_no = snakemake.params['read_no']
 # dict of chunk to outfile
 chunk_to_outfile = {os.path.basename(x).rstrip('.txt'):
                     os.path.join(outdir,
-                                 os.path.basename(x).rstrip('.txt') +
-                                 f'_r{read_no}.fq')
+                                 os.path.basename(x).rstrip('.txt') + '.fq')
                     for x in read_id_list}
 
 # initialise a dict of read_id to chunk
