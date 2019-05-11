@@ -18,7 +18,7 @@ def read_contig_list(contig_list):
 ###########
 
 n_chunks = 1000
-wait_mins = 30
+wait_mins = 60
 fraction_to_map = 1
 seed = 14
 
