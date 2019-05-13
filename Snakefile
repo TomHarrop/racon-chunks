@@ -42,9 +42,40 @@ alignment = 'data/aln.sam'
 singularity: racon_chunks
 
 rule target:
+    'output/racon.fasta',
+    expand('output/050_racon/chunk_{chunk}.fasta.gz',
+           chunk=all_chunks)
+
+# combine the chunks
+rule combine_chunks:
     input:
         expand('output/050_racon/chunk_{chunk}.fasta',
                chunk=all_chunks)
+    output:
+        'output/racon.fasta'
+    log:
+        'logs/combine_chunks.log'
+    benchmark:
+        'benchmarks/combine_chunks.txt'
+    threads:
+        1
+    shell:
+        'cat {input} > {output} 2> {log}'
+
+# tidy up files
+rule gzip:
+    input:
+        'output/{folder}/{file}.{ext}'
+    output:
+        'output/{folder}/{file}.{ext}.gz'
+    log:
+        'logs/gzip/{folder}_{file}.{ext}.log'
+    benchmark:
+        'benchmarks/gzip/{folder}_{file}.{ext}.txt'
+    threads:
+        1
+    shell:
+        'cat {input} | gzip -9 > {output} 2> {log}'
 
 # run racon on the chunks
 rule racon:
