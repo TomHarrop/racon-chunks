@@ -45,7 +45,14 @@ rule target:
     input:
         'output/racon.fasta',
         expand('output/050_racon/chunk_{chunk}.fasta.gz',
-               chunk=all_chunks)
+               chunk=all_chunks),
+        expand('output/010_chunks/chunk_{chunk}.fasta.gz',
+               chunk=all_chunks),
+        expand('output/040_read-chunks/chunk_{chunk}_repaired.fq.gz'
+               chunk=all_chunks),
+        expand('output/030_bam-chunks/chunk_{chunk}.bam',
+               chunks=all_chunks)
+
 
 # combine the chunks
 rule combine_chunks:
@@ -64,6 +71,20 @@ rule combine_chunks:
         'cat {input} > {output} 2> {log}'
 
 # tidy up files
+rule sam_to_bam:
+    input:
+        'output/{folder}/{file}.sam'
+    output:
+        'output/{folder}/{file}.bam'
+    log:
+        'logs/sam_to_bam/{folder}_{file}.log'
+    benchmark:
+        'benchmarks/sam_to_bam/{folder}_{file}.txt'
+    threads:
+        1
+    shell:
+        'samtools view -b -9 {input} > {output} 2> {log}'
+
 rule gzip:
     input:
         'output/{folder}/{file}.{ext}'
