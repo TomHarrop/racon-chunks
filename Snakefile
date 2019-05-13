@@ -85,7 +85,7 @@ rule sam_to_bam:
     threads:
         1
     shell:
-        'samtools view -b -9 {input} > {output} 2> {log}'
+        'samtools view -b {input} > {output} 2> {log}'
 
 rule gzip:
     input:
