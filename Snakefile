@@ -151,7 +151,7 @@ rule retrieve_reads:
                           chunk=all_chunks),
         fastq = reads
     output:
-        expand(temp('output/040_read-chunks/chunk_{chunk}.fq',
+        expand(temp('output/040_read-chunks/chunk_{{chunk}}.fq',
                     chunk=all_chunks))
     params:
         outdir = 'output/040_read-chunks',
