@@ -111,6 +111,8 @@ rule repair_reads:
         'logs/040_read-chunks/repair_reads_{chunk}.fq'
     benchmark:
         'benchmarks/040_read-chunks/repair_reads_{chunk}.txt'
+    priority:
+        1
     shell:
         'repair.sh '
         'in={input} '
@@ -150,6 +152,8 @@ rule extract_read_ids:
         'benchmarks/040_read-chunks/extract_read_ids_{chunk}.txt'
     threads:
         1
+    priority:
+        1
     shell:
         'samtools view  {input} '
         '| cut -f1 '
@@ -171,6 +175,8 @@ rule chunk_bam:
     benchmark:
         'benchmarks/030_bam-chunks/view_{chunk}.txt'
     threads:
+        1
+    priority:
         1
     shell:
         # the horrible sed command replaces the newlines with spaces in
@@ -197,6 +203,8 @@ rule list_contigs:
         'benchmarks/010_genome-chunks/list_contigs_{chunk}.txt'
     threads:
         1
+    priority:
+        1
     shell:
         'grep "^>" {input} | cut -d " " -f1 | sed -e \'s/>//g\' > {output}'
 
@@ -214,6 +222,8 @@ rule partition:
     benchmark:
         'benchmarks/010_genome-chunks/partition.txt'
     threads:
+        1
+    priority:
         1
     shell:
         'partition.sh '
@@ -234,6 +244,8 @@ rule index_bam:
         'benchmarks/020_alignment/index_bam.txt'
     threads:
         1
+    priority:
+        1
     shell:
         'samtools index {input.bam} {output.bai} '
         '2> {log}'
@@ -249,6 +261,8 @@ rule sort_sam:
         'benchmarks/020_alignment/sort_sam.txt'
     threads:
         multiprocessing.cpu_count()
+    priority:
+        1
     shell:
         'samtools sort '
         '-l 0 '
@@ -275,6 +289,8 @@ rule map_reads:
         'benchmarks/020_alignment/bwa-mem.txt'
     threads:
         multiprocessing.cpu_count()
+    priority:
+        1
     shell:
         'bwa mem '
         '-t {threads} '
@@ -297,6 +313,8 @@ rule index_assembly:
     benchmark:
         'benchmarks/020_alignment/bwa-index.txt'
     threads:
+        1
+    priority:
         1
     shell:
         'bwa index '
