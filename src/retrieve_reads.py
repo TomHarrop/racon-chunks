@@ -9,7 +9,7 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
     filename=snakemake.log[0],
-    level=logging.DEBUG)
+    level=logging.INFO)
 
 # catch files from snakemake
 read_id_list = snakemake.input['read_ids']
@@ -55,7 +55,11 @@ chunk_to_handle = {x: open(chunk_to_outfile[x], 'wt')
 
 # read through the fastq and write each file to the handles
 logging.info(f'Started reading {read_file}')
+i = 1
 for seq_rec in SeqIO.parse(read_file, 'fastq'):
+    if i % 1e6 == 0:
+        logging.info(f'Processed {int(i / 1e6)} million reads')
+    i += 1
     try:
         write_chunks = read_to_chunk[seq_rec.id]
         for chunk in write_chunks:
