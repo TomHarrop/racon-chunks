@@ -50,7 +50,7 @@ rule target:
                chunk=all_chunks),
         expand('output/030_bam-chunks/chunk_{chunk}.bam',
                chunk=all_chunks),
-        expand('output/040_read-chunks/chunk_{chunk}_repaired.fq.gz'
+        expand('output/040_read-chunks/chunk_{chunk}_repaired.fq.gz',
                chunk=all_chunks)
 
 
@@ -106,7 +106,7 @@ rule racon:
         aln = 'output/030_bam-chunks/chunk_{chunk}.sam',
         fq = 'output/040_read-chunks/chunk_{chunk}_repaired.fq'
     output:
-        'output/050_racon/chunk_{chunk}.fasta'
+        temp('output/050_racon/chunk_{chunk}.fasta')
     params:
         wait_mins = f'{wait_mins}m'
     log:
@@ -130,7 +130,7 @@ rule repair_reads:
     input:
         'output/040_read-chunks/chunk_{chunk}.fq'
     output:
-        'output/040_read-chunks/chunk_{chunk}_repaired.fq'
+        temp('output/040_read-chunks/chunk_{chunk}_repaired.fq')
     log:
         'logs/040_read-chunks/repair_reads_{chunk}.fq'
     benchmark:
@@ -149,8 +149,8 @@ rule retrieve_reads:
                           chunk=all_chunks),
         fastq = reads
     output:
-        expand('output/040_read-chunks/chunk_{chunk}.fq',
-               chunk=all_chunks)
+        temp(expand('output/040_read-chunks/chunk_{chunk}.fq',
+                    chunk=all_chunks))
     params:
         outdir = 'output/040_read-chunks',
     log:
@@ -165,7 +165,7 @@ rule extract_read_ids:
     input:
         'output/030_bam-chunks/chunk_{chunk}.sam'
     output:
-        'output/040_read-chunks/chunk_{chunk}.txt'
+        temp('output/040_read-chunks/chunk_{chunk}.txt')
     log:
         'logs/040_read-chunks/extract_read_ids_{chunk}.log'
     benchmark:
@@ -187,7 +187,7 @@ rule chunk_bam:
         bai = 'output/020_alignment/aln_sorted.bam.bai',
         contig_list = 'output/010_chunks/chunk_{chunk}_contigs.txt'
     output:
-        'output/030_bam-chunks/chunk_{chunk}.sam'
+        temp('output/030_bam-chunks/chunk_{chunk}.sam')
     log:
         'logs/030_bam-chunks/view_{chunk}.log'
     benchmark:
@@ -214,7 +214,7 @@ rule list_contigs:
     input:
         'output/010_chunks/chunk_{chunk}.fasta'
     output:
-        'output/010_chunks/chunk_{chunk}_contigs.txt'
+        temp('output/010_chunks/chunk_{chunk}_contigs.txt')
     benchmark:
         'benchmarks/010_chunks/list_contigs_{chunk}.txt'
     threads:
@@ -226,8 +226,8 @@ rule partition:
     input:
         assembly
     output:
-        expand('output/010_chunks/chunk_{chunk}.fasta',
-               chunk=all_chunks)
+        temp(expand('output/010_chunks/chunk_{chunk}.fasta',
+                    chunk=all_chunks))
     params:
         outfile = 'output/010_chunks/chunk_%.fasta',
         ways = n_chunks
