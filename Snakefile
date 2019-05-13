@@ -17,7 +17,7 @@ def read_contig_list(contig_list):
 # GLOBALS #
 ###########
 
-n_chunks = 1000
+n_chunks = 2000
 wait_mins = 60
 fraction_to_map = 1
 seed = 14
@@ -46,7 +46,7 @@ rule target:
         'output/racon.fasta',
         expand('output/050_racon/chunk_{chunk}.fasta.gz',
                chunk=all_chunks),
-        expand('output/010_chunks/chunk_{chunk}.fasta.gz',
+        expand('output/010_genome-chunks/chunk_{chunk}.fasta.gz',
                chunk=all_chunks),
         expand('output/030_bam-chunks/chunk_{chunk}.bam',
                chunk=all_chunks),
@@ -72,39 +72,11 @@ rule combine_chunks:
     shell:
         'cat {input} > {output} 2> {log}'
 
-# tidy up files
-rule sam_to_bam:
-    input:
-        'output/{folder}/{file}.sam'
-    output:
-        'output/{folder}/{file}.bam'
-    log:
-        'logs/sam_to_bam/{folder}_{file}.log'
-    benchmark:
-        'benchmarks/sam_to_bam/{folder}_{file}.txt'
-    threads:
-        1
-    shell:
-        'samtools view -b {input} > {output} 2> {log}'
-
-rule gzip:
-    input:
-        'output/{folder}/{file}.{ext}'
-    output:
-        'output/{folder}/{file}.{ext}.gz'
-    log:
-        'logs/gzip/{folder}_{file}.{ext}.log'
-    benchmark:
-        'benchmarks/gzip/{folder}_{file}.{ext}.txt'
-    threads:
-        1
-    shell:
-        'cat {input} | gzip -9 > {output} 2> {log}'
 
 # run racon on the chunks
 rule racon:
     input:
-        fasta = 'output/010_chunks/chunk_{chunk}.fasta',
+        fasta = 'output/010_genome-chunks/chunk_{chunk}.fasta',
         aln = 'output/030_bam-chunks/chunk_{chunk}.sam',
         fq = 'output/040_read-chunks/chunk_{chunk}_repaired.fq'
     output:
@@ -118,7 +90,7 @@ rule racon:
     threads:
         49
     priority:
-        50
+        100
     shell:
         'timeout {params.wait_mins} '
         'racon '
@@ -161,6 +133,8 @@ rule retrieve_reads:
         'logs/040_read-chunks/retrieve_reads.log'
     benchmark:
         'benchmarks/040_read-chunks/retrieve_reads.txt'
+    priority:
+        50
     script:
         'src/retrieve_reads.py'
 
@@ -189,7 +163,7 @@ rule chunk_bam:
     input:
         bam = 'output/020_alignment/aln_sorted.bam',
         bai = 'output/020_alignment/aln_sorted.bam.bai',
-        contig_list = 'output/010_chunks/chunk_{chunk}_contigs.txt'
+        contig_list = 'output/010_genome-chunks/chunk_{chunk}_contigs.txt'
     output:
         temp('output/030_bam-chunks/chunk_{chunk}.sam')
     log:
@@ -216,11 +190,11 @@ rule chunk_bam:
 # chunk the fasta file
 rule list_contigs:
     input:
-        'output/010_chunks/chunk_{chunk}.fasta'
+        'output/010_genome-chunks/chunk_{chunk}.fasta'
     output:
-        temp('output/010_chunks/chunk_{chunk}_contigs.txt')
+        temp('output/010_genome-chunks/chunk_{chunk}_contigs.txt')
     benchmark:
-        'benchmarks/010_chunks/list_contigs_{chunk}.txt'
+        'benchmarks/010_genome-chunks/list_contigs_{chunk}.txt'
     threads:
         1
     shell:
@@ -230,15 +204,15 @@ rule partition:
     input:
         assembly
     output:
-        temp(expand('output/010_chunks/chunk_{chunk}.fasta',
+        temp(expand('output/010_genome-chunks/chunk_{chunk}.fasta',
                     chunk=all_chunks))
     params:
-        outfile = 'output/010_chunks/chunk_%.fasta',
+        outfile = 'output/010_genome-chunks/chunk_%.fasta',
         ways = n_chunks
     log:
-        'logs/010_chunks/partition.log'
+        'logs/010_genome-chunks/partition.log'
     benchmark:
-        'benchmarks/010_chunks/partition.txt'
+        'benchmarks/010_genome-chunks/partition.txt'
     threads:
         1
     shell:
@@ -330,3 +304,36 @@ rule index_assembly:
         '{input.fasta} '
         '2> {log} '
 
+
+# general rules
+rule sam_to_bam:
+    input:
+        'output/{folder}/{file}.sam'
+    output:
+        'output/{folder}/{file}.bam'
+    log:
+        'logs/sam_to_bam/{folder}_{file}.log'
+    benchmark:
+        'benchmarks/sam_to_bam/{folder}_{file}.txt'
+    threads:
+        1
+    priority:
+        0
+    shell:
+        'samtools view -b {input} > {output} 2> {log}'
+
+rule gzip:
+    input:
+        'output/{folder}/{file}.{ext}'
+    output:
+        'output/{folder}/{file}.{ext}.gz'
+    log:
+        'logs/gzip/{folder}_{file}.{ext}.log'
+    benchmark:
+        'benchmarks/gzip/{folder}_{file}.{ext}.txt'
+    threads:
+        1
+    priority:
+        0
+    shell:
+        'cat {input} | gzip -9 > {output} 2> {log}'
