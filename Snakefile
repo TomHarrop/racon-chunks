@@ -50,8 +50,8 @@ rule target:
                chunk=all_chunks),
         # expand('output/040_read-chunks/chunk_{chunk}_repaired.fq.gz'
         #        chunk=all_chunks),
-        # expand('output/030_bam-chunks/chunk_{chunk}.bam',
-        #        chunk=all_chunks)
+        expand('output/030_bam-chunks/chunk_{chunk}.bam',
+               chunk=all_chunks)
 
 # combine the chunks
 rule combine_chunks:
