@@ -22,7 +22,7 @@ wait_mins = 60
 fraction_to_map = 1
 seed = 14
 
-racon_chunks = 'shub://TomHarrop/singularity-containers:racon-chunks_py36'
+racon_chunks = 'shub://TomHarrop/singularity-containers:racon-chunks'
 
 ########
 # MAIN #
@@ -116,7 +116,9 @@ rule racon:
     benchmark:
         'benchmarks/050_racon/chunk_{chunk}.txt'
     threads:
-        multiprocessing.cpu_count()
+        49
+    priority:
+        50
     shell:
         'timeout {params.wait_mins} '
         'racon '
@@ -204,7 +206,7 @@ rule chunk_bam:
         '-e \'s/\\n/ /g\' {input.contig_list})" ; '
         'samtools view '
         '-h '
-        '-F 256 '       # exclude secondary alignments
+        # '-F 256 '       # exclude secondary alignments
         '-O SAM '
         '{input.bam} '
         '${{contigs}} '
@@ -288,8 +290,7 @@ rule map_reads:
     input:
         index = expand('output/020_alignment/index.{suffix}',
                        suffix=['amb', 'ann', 'bwt', 'pac', 'sa']),
-        r1 = 'output/000_reads/r1.fq',
-        r2 = 'output/000_reads/r2.fq'
+        reads = reads
     output:
         temp('output/020_alignment/aln.sam')
     params:
@@ -303,9 +304,9 @@ rule map_reads:
     shell:
         'bwa mem '
         '-t {threads} '
+        '-p '
         '{params.prefix} '
-        '{input.r1} '
-        '{input.r2} '
+        '{input.reads} '
         '> {output} '
         '2> {log}'
 
