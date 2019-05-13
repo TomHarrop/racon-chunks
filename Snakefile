@@ -42,9 +42,10 @@ alignment = 'data/aln.sam'
 singularity: racon_chunks
 
 rule target:
-    'output/racon.fasta',
-    expand('output/050_racon/chunk_{chunk}.fasta.gz',
-           chunk=all_chunks)
+    input:
+        'output/racon.fasta',
+        expand('output/050_racon/chunk_{chunk}.fasta.gz',
+               chunk=all_chunks)
 
 # combine the chunks
 rule combine_chunks:
