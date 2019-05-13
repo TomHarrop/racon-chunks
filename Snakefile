@@ -67,6 +67,8 @@ rule combine_chunks:
         'benchmarks/combine_chunks.txt'
     threads:
         1
+    priority:
+        100
     shell:
         'cat {input} > {output} 2> {log}'
 
