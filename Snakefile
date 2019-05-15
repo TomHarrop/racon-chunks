@@ -1,70 +1,80 @@
 #!/usr/bin/env python3
 
 import multiprocessing
-
-
-#############
-# FUNCTIONS #
-#############
-
-def read_contig_list(contig_list):
-    with open(contig_list, 'rt') as f:
-        contigs = [x.rstrip() for x in f.readlines()]
-    return(' '.join(contigs))
+import os
 
 
 ###########
 # GLOBALS #
 ###########
 
+seed = 14
+
+# dev
 n_chunks = 2000
 wait_mins = 60
 fraction_to_map = 1
-seed = 14
+reads = 'data/pe_reads.fq'
+assembly = 'data/flye_denovo_full.racon.fasta'
+outdir = 'output'
+output_filename = 'racon.fasta'
 
-racon_chunks = 'shub://TomHarrop/singularity-containers:racon-chunks'
+# catch options
+# n_chunks = config['chunks']
+# wait_mins = config['wait']
+# fraction_to_map = config['fraction']
+# reads = config['reads']
+# assembly = config['assembly']
+# outdir = config['outdir']
+# output_filename = config['output_filename']
 
 ########
 # MAIN #
 ########
 
 all_chunks = [str(x) for x in range(0, n_chunks)]
-# all_chunks = ['87', '999'] # testing
 
-reads = 'data/pe_reads.fq'
-assembly = 'data/flye_denovo_full.racon.fasta'
-alignment = 'data/aln.sam'
+# set up directories
+logdir = os.path.join(outdir, 'logs')
+benchdir = os.path.join(outdir, 'benchmarks')
+racon_file = os.path.join(outdir, output_filename)
+
 
 #########
 # RULES #
 #########
 
+# dev
+racon_chunks = 'shub://TomHarrop/singularity-containers:racon-chunks'
 singularity: racon_chunks
 
 rule target:
     input:
-        'output/racon.fasta',
-        expand('output/050_racon/chunk_{chunk}.fasta.gz',
+        racon_file,
+        expand(os.path.join(outdir, '050_racon/chunk_{chunk}.fasta.gz'),
                chunk=all_chunks),
-        expand('output/010_genome-chunks/chunk_{chunk}.fasta.gz',
+        expand(os.path.join(outdir,
+                            '010_genome-chunks/chunk_{chunk}.fasta.gz'),
                chunk=all_chunks),
-        expand('output/030_bam-chunks/chunk_{chunk}.bam',
+        expand(os.path.join(outdir,
+                            '030_bam-chunks/chunk_{chunk}.bam'),
                chunk=all_chunks),
-        expand('output/040_read-chunks/chunk_{chunk}_repaired.fq.gz',
+        expand(os.path.join(outdir,
+                            '040_read-chunks/chunk_{chunk}_repaired.fq.gz'),
                chunk=all_chunks)
 
 
 # combine the chunks
 rule combine_chunks:
     input:
-        expand('output/050_racon/chunk_{chunk}.fasta',
+        expand(os.path.join(outdir, '050_racon/chunk_{chunk}.fasta'),
                chunk=all_chunks)
     output:
-        'output/racon.fasta'
+        racon_file
     log:
-        'logs/combine_chunks.log'
+        os.path.join(logdir, 'combine_chunks.log')
     benchmark:
-        'benchmarks/combine_chunks.txt'
+        os.path.join(benchdir, 'combine_chunks.txt')
     threads:
         1
     priority:
@@ -76,17 +86,17 @@ rule combine_chunks:
 # run racon on the chunks
 rule racon:
     input:
-        fasta = 'output/010_genome-chunks/chunk_{chunk}.fasta',
-        aln = 'output/030_bam-chunks/chunk_{chunk}.sam',
-        fq = 'output/040_read-chunks/chunk_{chunk}_repaired.fq'
+        fasta = os.path.join(outdir, '010_genome-chunks/chunk_{chunk}.fasta'),
+        aln = os.path.join(outdir, '030_bam-chunks/chunk_{chunk}.sam'),
+        fq = os.path.join(outdir, '040_read-chunks/chunk_{chunk}_repaired.fq')
     output:
-        temp('output/050_racon/chunk_{chunk}.fasta')
+        temp(os.path.join(outdir, '050_racon/chunk_{chunk}.fasta'))
     params:
         wait_mins = f'{wait_mins}m'
     log:
-        'logs/050_racon/chunk_{chunk}.log'
+        os.path.join(logdir, '050_racon/chunk_{chunk}.log')
     benchmark:
-        'benchmarks/050_racon/chunk_{chunk}.txt'
+        os.path.join(benchdir, '050_racon/chunk_{chunk}.txt')
     threads:
         49
     priority:
@@ -104,13 +114,13 @@ rule racon:
 # verify pairing has been maintained
 rule repair_reads:
     input:
-        'output/040_read-chunks/chunk_{chunk}.fq'
+        os.path.join(outdir, '040_read-chunks/chunk_{chunk}.fq')
     output:
-        temp('output/040_read-chunks/chunk_{chunk}_repaired.fq')
+        temp(os.path.join(outdir, '040_read-chunks/chunk_{chunk}_repaired.fq'))
     log:
-        'logs/040_read-chunks/repair_reads_{chunk}.fq'
+        os.path.join(logdir, '040_read-chunks/repair_reads_{chunk}.fq')
     benchmark:
-        'benchmarks/040_read-chunks/repair_reads_{chunk}.txt'
+        os.path.join(benchdir, '040_read-chunks/repair_reads_{chunk}.txt')
     priority:
         1
     shell:
@@ -123,33 +133,34 @@ rule repair_reads:
 # loop once through the fastq and split reads accordingly
 rule retrieve_reads:
     input:
-        read_ids = expand('output/040_read-chunks/chunk_{chunk}.txt',
+        read_ids = expand(os.path.join(outdir,
+                                       '040_read-chunks/chunk_{chunk}.txt'),
                           chunk=all_chunks),
         fastq = reads
     output:
-        temp(expand('output/040_read-chunks/chunk_{chunk}.fq',
+        temp(expand(os.path.join(outdir, '040_read-chunks/chunk_{chunk}.fq'),
                     chunk=all_chunks))
     params:
-        outdir = 'output/040_read-chunks',
+        outdir = os.path.join(outdir, '040_read-chunks'),
     log:
-        'logs/040_read-chunks/retrieve_reads.log'
+        os.path.join(logdir, '040_read-chunks/retrieve_reads.log')
     benchmark:
-        'benchmarks/040_read-chunks/retrieve_reads.txt'
+        os.path.join(benchdir, '040_read-chunks/retrieve_reads.txt')
     priority:
         50
     script:
-        'src/retrieve_reads.py'
+        'src/retrieve_reads.py' # how to find this from package?
 
 # get the list of read ids for each chunk
 rule extract_read_ids:
     input:
-        'output/030_bam-chunks/chunk_{chunk}.sam'
+        os.path.join(outdir, '030_bam-chunks/chunk_{chunk}.sam')
     output:
-        temp('output/040_read-chunks/chunk_{chunk}.txt')
+        temp(os.path.join(outdir, '040_read-chunks/chunk_{chunk}.txt'))
     log:
-        'logs/040_read-chunks/extract_read_ids_{chunk}.log'
+        os.path.join(logdir, '040_read-chunks/extract_read_ids_{chunk}.log')
     benchmark:
-        'benchmarks/040_read-chunks/extract_read_ids_{chunk}.txt'
+        os.path.join(benchdir, '040_read-chunks/extract_read_ids_{chunk}.txt')
     threads:
         1
     priority:
@@ -165,15 +176,17 @@ rule extract_read_ids:
 # subset the BAM by the chunk list
 rule chunk_bam:
     input:
-        bam = 'output/020_alignment/aln_sorted.bam',
-        bai = 'output/020_alignment/aln_sorted.bam.bai',
-        contig_list = 'output/010_genome-chunks/chunk_{chunk}_contigs.txt'
+        bam = os.path.join(outdir, '020_alignment/aln_sorted.bam'),
+        bai = os.path.join(outdir, '020_alignment/aln_sorted.bam.bai'),
+        contig_list = os.path.join(
+            outdir,
+            '010_genome-chunks/chunk_{chunk}_contigs.txt')
     output:
-        temp('output/030_bam-chunks/chunk_{chunk}.sam')
+        temp(os.path.join(outdir, '030_bam-chunks/chunk_{chunk}.sam'))
     log:
-        'logs/030_bam-chunks/view_{chunk}.log'
+        os.path.join(logdir, '030_bam-chunks/view_{chunk}.log')
     benchmark:
-        'benchmarks/030_bam-chunks/view_{chunk}.txt'
+        os.path.join(benchdir, '030_bam-chunks/view_{chunk}.txt')
     threads:
         1
     priority:
@@ -196,11 +209,12 @@ rule chunk_bam:
 # chunk the fasta file
 rule list_contigs:
     input:
-        'output/010_genome-chunks/chunk_{chunk}.fasta'
+        os.path.join(outdir, '010_genome-chunks/chunk_{chunk}.fasta')
     output:
-        temp('output/010_genome-chunks/chunk_{chunk}_contigs.txt')
+        temp(os.path.join(outdir,
+                          '010_genome-chunks/chunk_{chunk}_contigs.txt'))
     benchmark:
-        'benchmarks/010_genome-chunks/list_contigs_{chunk}.txt'
+        os.path.join(benchdir, '010_genome-chunks/list_contigs_{chunk}.txt')
     threads:
         1
     priority:
@@ -212,15 +226,16 @@ rule partition:
     input:
         assembly
     output:
-        temp(expand('output/010_genome-chunks/chunk_{chunk}.fasta',
+        temp(expand(os.path.join(outdir,
+                                 '010_genome-chunks/chunk_{chunk}.fasta'),
                     chunk=all_chunks))
     params:
-        outfile = 'output/010_genome-chunks/chunk_%.fasta',
+        outfile = os.path.join(outdir, '010_genome-chunks/chunk_%.fasta'),
         ways = n_chunks
     log:
-        'logs/010_genome-chunks/partition.log'
+        os.path.join(logdir, '010_genome-chunks/partition.log')
     benchmark:
-        'benchmarks/010_genome-chunks/partition.txt'
+        os.path.join(benchdir, '010_genome-chunks/partition.txt')
     threads:
         1
     priority:
@@ -235,13 +250,13 @@ rule partition:
 # sort and index the bwa aln.sam file
 rule index_bam:
     input:
-        bam = 'output/020_alignment/aln_sorted.bam',
+        bam = os.path.join(outdir, '020_alignment/aln_sorted.bam'),
     output:
-        bai = 'output/020_alignment/aln_sorted.bam.bai'
+        bai = os.path.join(outdir, '020_alignment/aln_sorted.bam.bai')
     log:
-        'logs/020_alignment/index_bam.log'
+        os.path.join(logdir, '020_alignment/index_bam.log')
     benchmark:
-        'benchmarks/020_alignment/index_bam.txt'
+        os.path.join(benchdir, '020_alignment/index_bam.txt')
     threads:
         1
     priority:
@@ -252,13 +267,13 @@ rule index_bam:
 
 rule sort_sam:
     input:
-        'output/020_alignment/aln.sam'
+        os.path.join(outdir, '020_alignment/aln.sam')
     output:
-        bam = 'output/020_alignment/aln_sorted.bam',
+        bam = os.path.join(outdir, '020_alignment/aln_sorted.bam'),
     log:
-        'logs/020_alignment/sort_sam.log'
+        os.path.join(logdir, '020_alignment/sort_sam.log')
     benchmark:
-        'benchmarks/020_alignment/sort_sam.txt'
+        os.path.join(benchdir, '020_alignment/sort_sam.txt')
     threads:
         multiprocessing.cpu_count()
     priority:
@@ -276,17 +291,17 @@ rule sort_sam:
 # map the reads to the whole fasta
 rule map_reads:
     input:
-        index = expand('output/020_alignment/index.{suffix}',
+        index = expand(os.path.join(outdir, '020_alignment/index.{suffix}'),
                        suffix=['amb', 'ann', 'bwt', 'pac', 'sa']),
         reads = reads
     output:
-        temp('output/020_alignment/aln.sam')
+        temp(os.path.join(outdir, '020_alignment/aln.sam'))
     params:
-        prefix = 'output/020_alignment/index'
+        prefix = os.path.join(outdir, '020_alignment/index')
     log:
-        'logs/020_alignment/bwa-mem.log'
+        os.path.join(logdir, '020_alignment/bwa-mem.log')
     benchmark:
-        'benchmarks/020_alignment/bwa-mem.txt'
+        os.path.join(benchdir, '020_alignment/bwa-mem.txt')
     threads:
         multiprocessing.cpu_count()
     priority:
@@ -304,14 +319,14 @@ rule index_assembly:
     input:
         fasta = assembly
     output:
-        expand('output/020_alignment/index.{suffix}',
+        expand(os.path.join(outdir, '020_alignment/index.{suffix}'),
                suffix=['amb', 'ann', 'bwt', 'pac', 'sa'])
     params:
-        prefix = 'output/020_alignment/index'
+        prefix = os.path.join(outdir, '020_alignment/index')
     log:
-        'logs/020_alignment/bwa-index.log'
+        os.path.join(logdir, '020_alignment/bwa-index.log')
     benchmark:
-        'benchmarks/020_alignment/bwa-index.txt'
+        os.path.join(benchdir, '020_alignment/bwa-index.txt')
     threads:
         1
     priority:
@@ -326,13 +341,13 @@ rule index_assembly:
 # general rules
 rule sam_to_bam:
     input:
-        'output/{folder}/{file}.sam'
+        os.path.join(outdir, '{folder}/{file}.sam')
     output:
-        'output/{folder}/{file}.bam'
+        os.path.join(outdir, '{folder}/{file}.bam')
     log:
-        'logs/sam_to_bam/{folder}_{file}.log'
+        os.path.join(logdir, 'sam_to_bam/{folder}_{file}.log')
     benchmark:
-        'benchmarks/sam_to_bam/{folder}_{file}.txt'
+        os.path.join(benchdir, 'sam_to_bam/{folder}_{file}.txt')
     threads:
         1
     priority:
@@ -342,13 +357,13 @@ rule sam_to_bam:
 
 rule gzip:
     input:
-        'output/{folder}/{file}.{ext}'
+        os.path.join(outdir, '{folder}/{file}.{ext}')
     output:
-        'output/{folder}/{file}.{ext}.gz'
+        os.path.join(outdir, '{folder}/{file}.{ext}.gz')
     log:
-        'logs/gzip/{folder}_{file}.{ext}.log'
+        os.path.join(logdir, 'gzip/{folder}_{file}.{ext}.log')
     benchmark:
-        'benchmarks/gzip/{folder}_{file}.{ext}.txt'
+        os.path.join(benchdir, 'gzip/{folder}_{file}.{ext}.txt')
     threads:
         1
     priority:
