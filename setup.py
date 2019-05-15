@@ -27,15 +27,16 @@ setup(
         'snakemake>=5.4.5'
     ],
     scripts=[
-        'src/retrieve_reads.py', # FIXME
+        'racon_chunks/src/retrieve_reads.py',
     ],
     entry_points={
         'console_scripts': [
-            'racon_chunks = racon_chunks.__main__:main'
+            'racon_chunks = racon_chunks.__main__:main',
+            'print_dag = racon_chunks.print_dag:main'
             ],
     },
     package_data={
-        'trinotate_pipeline': [
+        'racon_chunks': [
             'Snakefile',
             'README.rst'
         ],

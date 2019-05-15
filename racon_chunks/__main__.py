@@ -73,6 +73,11 @@ def parse_arguments():
         type=float,
         dest='fraction',
         default=default_fraction)
+    parser.add_argument(
+        '-n',
+        help='Dry run',
+        dest='dry_run',
+        action='store_true')
 
     args = vars(parser.parse_args())
     return(args)
@@ -105,7 +110,8 @@ def main():
         cores=args['threads'],
         lock=False,
         printreason=True,
-        printshellcmds=True)
+        printshellcmds=True,
+        dryrun=True if args['dry_run'] else False)
 
 
 if __name__ == '__main__':

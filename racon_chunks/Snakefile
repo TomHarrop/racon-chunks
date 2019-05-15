@@ -11,22 +11,22 @@ import os
 seed = 14
 
 # dev
-n_chunks = 2000
-wait_mins = 60
-fraction_to_map = 1
-reads = 'data/pe_reads.fq'
-assembly = 'data/flye_denovo_full.racon.fasta'
-outdir = 'output'
-output_filename = 'racon.fasta'
+# n_chunks = 2000
+# wait_mins = 60
+# fraction_to_map = 1
+# reads = 'data/pe_reads.fq'
+# assembly = 'data/flye_denovo_full.racon.fasta'
+# outdir = 'output'
+# output_filename = 'racon.fasta'
 
 # catch options
-# n_chunks = config['chunks']
-# wait_mins = config['wait']
-# fraction_to_map = config['fraction']
-# reads = config['reads']
-# assembly = config['assembly']
-# outdir = config['outdir']
-# output_filename = config['output_filename']
+n_chunks = config['chunks']
+wait_mins = config['wait']
+fraction_to_map = config['fraction']
+reads = config['reads']
+assembly = config['assembly']
+outdir = config['outdir']
+output_filename = config['output_filename']
 
 ########
 # MAIN #
@@ -149,7 +149,7 @@ rule retrieve_reads:
     priority:
         50
     script:
-        'src/retrieve_reads.py' # how to find this from package?
+        'retrieve_reads.py'
 
 # get the list of read ids for each chunk
 rule extract_read_ids:

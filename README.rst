@@ -3,7 +3,7 @@ racon_chunks
 
 A python3 wrapper for the running racon on chunks, using snakemake_.
 
-.. image:: http://tomharrop.io/trinotate_pipeline/graph.svg
+.. image:: https://raw.githubusercontent.com/TomHarrop/racon_chunks/master/dag.svg
 
 Requirements
 ------------
