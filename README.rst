@@ -3,7 +3,7 @@ racon_chunks
 
 A python3 wrapper for the running racon on chunks, using snakemake_.
 
-.. image:: https://raw.githubusercontent.com/TomHarrop/racon_chunks/master/dag.svg
+.. image:: https://raw.githubusercontent.com/TomHarrop/racon-chunks/master/dag.svg
 
 Requirements
 ------------
@@ -20,7 +20,7 @@ Otherwise, the following must be installed:
 Installation
 ------------
 
-``pip3 install git+git://github.com/tomharrop/racon_chunks.git``
+``pip3 install git+git://github.com/tomharrop/racon-chunks.git``
 
 Usage
 -----
