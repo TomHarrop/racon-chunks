@@ -1,0 +1,372 @@
+#!/usr/bin/env python3
+
+import multiprocessing
+import os
+
+
+###########
+# GLOBALS #
+###########
+
+seed = 14
+
+# dev
+# n_chunks = 2000
+# wait_mins = 60
+# fraction_to_map = 1
+# reads = 'data/pe_reads.fq'
+# assembly = 'data/flye_denovo_full.racon.fasta'
+# outdir = 'output'
+# output_filename = 'racon.fasta'
+
+# catch options
+n_chunks = config['chunks']
+wait_mins = config['wait']
+fraction_to_map = config['fraction']
+reads = config['reads']
+assembly = config['assembly']
+outdir = config['outdir']
+output_filename = config['output_filename']
+
+########
+# MAIN #
+########
+
+all_chunks = [str(x) for x in range(0, n_chunks)]
+
+# set up directories
+logdir = os.path.join(outdir, 'logs')
+benchdir = os.path.join(outdir, 'benchmarks')
+racon_file = os.path.join(outdir, output_filename)
+
+
+#########
+# RULES #
+#########
+
+# dev
+racon_chunks = 'shub://TomHarrop/singularity-containers:racon-chunks'
+singularity: racon_chunks
+
+rule target:
+    input:
+        racon_file,
+        expand(os.path.join(outdir, '050_racon/chunk_{chunk}.fasta.gz'),
+               chunk=all_chunks),
+        expand(os.path.join(outdir,
+                            '010_genome-chunks/chunk_{chunk}.fasta.gz'),
+               chunk=all_chunks),
+        expand(os.path.join(outdir,
+                            '030_bam-chunks/chunk_{chunk}.bam'),
+               chunk=all_chunks),
+        expand(os.path.join(outdir,
+                            '040_read-chunks/chunk_{chunk}_repaired.fq.gz'),
+               chunk=all_chunks)
+
+
+# combine the chunks
+rule combine_chunks:
+    input:
+        expand(os.path.join(outdir, '050_racon/chunk_{chunk}.fasta'),
+               chunk=all_chunks)
+    output:
+        racon_file
+    log:
+        os.path.join(logdir, 'combine_chunks.log')
+    benchmark:
+        os.path.join(benchdir, 'combine_chunks.txt')
+    threads:
+        1
+    priority:
+        100
+    shell:
+        'cat {input} > {output} 2> {log}'
+
+
+# run racon on the chunks
+rule racon:
+    input:
+        fasta = os.path.join(outdir, '010_genome-chunks/chunk_{chunk}.fasta'),
+        aln = os.path.join(outdir, '030_bam-chunks/chunk_{chunk}.sam'),
+        fq = os.path.join(outdir, '040_read-chunks/chunk_{chunk}_repaired.fq')
+    output:
+        temp(os.path.join(outdir, '050_racon/chunk_{chunk}.fasta'))
+    params:
+        wait_mins = f'{wait_mins}m'
+    log:
+        os.path.join(logdir, '050_racon/chunk_{chunk}.log')
+    benchmark:
+        os.path.join(benchdir, '050_racon/chunk_{chunk}.txt')
+    threads:
+        49
+    priority:
+        100
+    shell:
+        'timeout {params.wait_mins} '
+        'racon '
+        '-t {threads} '
+        '{input.fq} '
+        '{input.aln} '
+        '{input.fasta} '
+        '> {output} '
+        '2> {log}'
+
+# verify pairing has been maintained
+rule repair_reads:
+    input:
+        os.path.join(outdir, '040_read-chunks/chunk_{chunk}.fq')
+    output:
+        temp(os.path.join(outdir, '040_read-chunks/chunk_{chunk}_repaired.fq'))
+    log:
+        os.path.join(logdir, '040_read-chunks/repair_reads_{chunk}.fq')
+    benchmark:
+        os.path.join(benchdir, '040_read-chunks/repair_reads_{chunk}.txt')
+    priority:
+        1
+    shell:
+        'repair.sh '
+        'in={input} '
+        'repair=t '
+        'out={output} '
+        '&> {log}'
+
+# loop once through the fastq and split reads accordingly
+rule retrieve_reads:
+    input:
+        read_ids = expand(os.path.join(outdir,
+                                       '040_read-chunks/chunk_{chunk}.txt'),
+                          chunk=all_chunks),
+        fastq = reads
+    output:
+        temp(expand(os.path.join(outdir, '040_read-chunks/chunk_{chunk}.fq'),
+                    chunk=all_chunks))
+    params:
+        outdir = os.path.join(outdir, '040_read-chunks'),
+    log:
+        os.path.join(logdir, '040_read-chunks/retrieve_reads.log')
+    benchmark:
+        os.path.join(benchdir, '040_read-chunks/retrieve_reads.txt')
+    priority:
+        50
+    script:
+        'retrieve_reads.py'
+
+# get the list of read ids for each chunk
+rule extract_read_ids:
+    input:
+        os.path.join(outdir, '030_bam-chunks/chunk_{chunk}.sam')
+    output:
+        temp(os.path.join(outdir, '040_read-chunks/chunk_{chunk}.txt'))
+    log:
+        os.path.join(logdir, '040_read-chunks/extract_read_ids_{chunk}.log')
+    benchmark:
+        os.path.join(benchdir, '040_read-chunks/extract_read_ids_{chunk}.txt')
+    threads:
+        1
+    priority:
+        1
+    shell:
+        'samtools view  {input} '
+        '| cut -f1 '
+        '| sort '
+        '| uniq '
+        '> {output} '
+        '2> {log}'
+
+# subset the BAM by the chunk list
+rule chunk_bam:
+    input:
+        bam = os.path.join(outdir, '020_alignment/aln_sorted.bam'),
+        bai = os.path.join(outdir, '020_alignment/aln_sorted.bam.bai'),
+        contig_list = os.path.join(
+            outdir,
+            '010_genome-chunks/chunk_{chunk}_contigs.txt')
+    output:
+        temp(os.path.join(outdir, '030_bam-chunks/chunk_{chunk}.sam'))
+    log:
+        os.path.join(logdir, '030_bam-chunks/view_{chunk}.log')
+    benchmark:
+        os.path.join(benchdir, '030_bam-chunks/view_{chunk}.txt')
+    threads:
+        1
+    priority:
+        1
+    shell:
+        # the horrible sed command replaces the newlines with spaces in
+        # contig_list. This allows the workflow to run before contig_list is
+        # created. Adapted from https://stackoverflow.com/a/1252191
+        'contigs="$(sed -e \':a\' -e \'N\' -e \'$!ba\' '
+        '-e \'s/\\n/ /g\' {input.contig_list})" ; '
+        'samtools view '
+        '-h '
+        # '-F 256 '       # exclude secondary alignments
+        '-O SAM '
+        '{input.bam} '
+        '${{contigs}} '
+        '> {output} '
+        '2> {log}'
+
+# chunk the fasta file
+rule list_contigs:
+    input:
+        os.path.join(outdir, '010_genome-chunks/chunk_{chunk}.fasta')
+    output:
+        temp(os.path.join(outdir,
+                          '010_genome-chunks/chunk_{chunk}_contigs.txt'))
+    benchmark:
+        os.path.join(benchdir, '010_genome-chunks/list_contigs_{chunk}.txt')
+    threads:
+        1
+    priority:
+        1
+    shell:
+        'grep "^>" {input} | cut -d " " -f1 | sed -e \'s/>//g\' > {output}'
+
+rule partition:
+    input:
+        assembly
+    output:
+        temp(expand(os.path.join(outdir,
+                                 '010_genome-chunks/chunk_{chunk}.fasta'),
+                    chunk=all_chunks))
+    params:
+        outfile = os.path.join(outdir, '010_genome-chunks/chunk_%.fasta'),
+        ways = n_chunks
+    log:
+        os.path.join(logdir, '010_genome-chunks/partition.log')
+    benchmark:
+        os.path.join(benchdir, '010_genome-chunks/partition.txt')
+    threads:
+        1
+    priority:
+        1
+    shell:
+        'partition.sh '
+        'in={input} '
+        'out={params.outfile} '
+        'ways={params.ways} '
+        '2> {log}'
+
+# sort and index the bwa aln.sam file
+rule index_bam:
+    input:
+        bam = os.path.join(outdir, '020_alignment/aln_sorted.bam'),
+    output:
+        bai = os.path.join(outdir, '020_alignment/aln_sorted.bam.bai')
+    log:
+        os.path.join(logdir, '020_alignment/index_bam.log')
+    benchmark:
+        os.path.join(benchdir, '020_alignment/index_bam.txt')
+    threads:
+        1
+    priority:
+        1
+    shell:
+        'samtools index {input.bam} {output.bai} '
+        '2> {log}'
+
+rule sort_sam:
+    input:
+        os.path.join(outdir, '020_alignment/aln.sam')
+    output:
+        bam = os.path.join(outdir, '020_alignment/aln_sorted.bam'),
+    log:
+        os.path.join(logdir, '020_alignment/sort_sam.log')
+    benchmark:
+        os.path.join(benchdir, '020_alignment/sort_sam.txt')
+    threads:
+        multiprocessing.cpu_count()
+    priority:
+        1
+    shell:
+        'samtools sort '
+        '-l 0 '
+        '-m 7G '
+        '-O BAM '
+        '--threads {threads} '
+        '{input} '
+        '> {output.bam} '
+        '2> {log} '
+
+# map the reads to the whole fasta
+rule map_reads:
+    input:
+        index = expand(os.path.join(outdir, '020_alignment/index.{suffix}'),
+                       suffix=['amb', 'ann', 'bwt', 'pac', 'sa']),
+        reads = reads
+    output:
+        temp(os.path.join(outdir, '020_alignment/aln.sam'))
+    params:
+        prefix = os.path.join(outdir, '020_alignment/index')
+    log:
+        os.path.join(logdir, '020_alignment/bwa-mem.log')
+    benchmark:
+        os.path.join(benchdir, '020_alignment/bwa-mem.txt')
+    threads:
+        multiprocessing.cpu_count()
+    priority:
+        1
+    shell:
+        'bwa mem '
+        '-t {threads} '
+        '-p '
+        '{params.prefix} '
+        '{input.reads} '
+        '> {output} '
+        '2> {log}'
+
+rule index_assembly:
+    input:
+        fasta = assembly
+    output:
+        expand(os.path.join(outdir, '020_alignment/index.{suffix}'),
+               suffix=['amb', 'ann', 'bwt', 'pac', 'sa'])
+    params:
+        prefix = os.path.join(outdir, '020_alignment/index')
+    log:
+        os.path.join(logdir, '020_alignment/bwa-index.log')
+    benchmark:
+        os.path.join(benchdir, '020_alignment/bwa-index.txt')
+    threads:
+        1
+    priority:
+        1
+    shell:
+        'bwa index '
+        '-p {params.prefix} '
+        '{input.fasta} '
+        '2> {log} '
+
+
+# general rules
+rule sam_to_bam:
+    input:
+        os.path.join(outdir, '{folder}/{file}.sam')
+    output:
+        os.path.join(outdir, '{folder}/{file}.bam')
+    log:
+        os.path.join(logdir, 'sam_to_bam/{folder}_{file}.log')
+    benchmark:
+        os.path.join(benchdir, 'sam_to_bam/{folder}_{file}.txt')
+    threads:
+        1
+    priority:
+        0
+    shell:
+        'samtools view -b {input} > {output} 2> {log}'
+
+rule gzip:
+    input:
+        os.path.join(outdir, '{folder}/{file}.{ext}')
+    output:
+        os.path.join(outdir, '{folder}/{file}.{ext}.gz')
+    log:
+        os.path.join(logdir, 'gzip/{folder}_{file}.{ext}.log')
+    benchmark:
+        os.path.join(benchdir, 'gzip/{folder}_{file}.{ext}.txt')
+    threads:
+        1
+    priority:
+        0
+    shell:
+        'cat {input} | gzip -9 > {output} 2> {log}'
