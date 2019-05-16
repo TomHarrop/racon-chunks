@@ -2,6 +2,7 @@
 
 import multiprocessing
 import os
+import shutil
 
 
 ###########
@@ -140,7 +141,7 @@ rule retrieve_reads:
     priority:
         50
     script:
-        'retrieve_reads.py'
+        shutil.which('retrieve_reads.py')
 
 # get the list of read ids for each chunk
 rule extract_read_ids:
