@@ -13,7 +13,7 @@ def readme():
 
 setup(
     name='racon_chunks',
-    version='0.0.1',
+    version='0.0.4',
     description='python3 wrapper for racon_chunks',
     long_description=readme(),
     url='https://github.com/tomaharrop/racon_chunks',

@@ -19,6 +19,7 @@ reads = config['reads']
 assembly = config['assembly']
 outdir = config['outdir']
 output_filename = config['output_filename']
+all_threads = config['threads']
 
 ########
 # MAIN #
@@ -30,7 +31,6 @@ all_chunks = [str(x) for x in range(0, n_chunks)]
 logdir = os.path.join(outdir, 'logs')
 benchdir = os.path.join(outdir, 'benchmarks')
 racon_file = os.path.join(outdir, output_filename)
-
 
 #########
 # RULES #
@@ -90,7 +90,7 @@ rule racon:
     benchmark:
         os.path.join(benchdir, '050_racon/chunk_{chunk}.txt')
     threads:
-        49
+        int(all_threads) - 1
     priority:
         100
     shell:
@@ -267,7 +267,7 @@ rule sort_sam:
     benchmark:
         os.path.join(benchdir, '020_alignment/sort_sam.txt')
     threads:
-        multiprocessing.cpu_count()
+        all_threads
     priority:
         1
     shell:
@@ -295,7 +295,7 @@ rule map_reads:
     benchmark:
         os.path.join(benchdir, '020_alignment/bwa-mem.txt')
     threads:
-        multiprocessing.cpu_count()
+        all_threads
     priority:
         1
     shell:

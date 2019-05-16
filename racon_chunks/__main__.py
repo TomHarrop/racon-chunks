@@ -95,7 +95,7 @@ def main():
         level=logging.INFO)
 
     # get the snakefile
-    snakefile = resource_filename(__name__, 'Snakefile') # SET THIS UP IN setup.py
+    snakefile = resource_filename(__name__, 'Snakefile')
     logging.debug(f'Using snakefile {snakefile}')
 
     # get args

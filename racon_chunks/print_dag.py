@@ -54,17 +54,5 @@ def main():
         with open(dag_file, 'wt') as file:
             file.write(output)
 
-
-
-    # # run the pipeline
-    # snakemake.snakemake(
-    #     snakefile=snakefile,
-    #     config=args,
-    #     cores=args['threads'],
-    #     lock=False,
-    #     printreason=True,
-    #     printshellcmds=True,
-    #     dryrun=True if args['dry_run'] else False)
-
 if __name__ == '__main__':
     main()
