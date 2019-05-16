@@ -20,7 +20,7 @@ def main():
         'fraction': 1,
         'reads': 'reads.fq',
         'assembly': 'assembly.fasta',
-        'outdir': 'blerf',
+        'outdir': 'test',
         'output_filename': 'racon.fasta'
         }
 

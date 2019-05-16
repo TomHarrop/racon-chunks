@@ -1,14 +1,14 @@
 racon_chunks
 ==================
 
-A python3 wrapper for the running racon on chunks, using snakemake_.
+A python3 wrapper for running ``racon`` on chunks, using snakemake_.
 
-.. image:: https://raw.githubusercontent.com/TomHarrop/racon-chunks/master/dag.pdf
+.. image:: https://raw.githubusercontent.com/TomHarrop/racon-chunks/master/dag.svg
 
 Requirements
 ------------
 
-If Singularity_ is available, download and run the racon_chunks_ container.
+If Singularity_ is available, download and run the racon_chunks_ container from shub://TomHarrop/singularity-containers:racon-chunks_0.0.2.
 
 Otherwise, the following must be installed:
 
