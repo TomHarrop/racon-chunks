@@ -8,7 +8,7 @@ A python3 wrapper for running ``racon`` on chunks, using snakemake_.
 Requirements
 ------------
 
-If Singularity_ is available, download and run the racon_chunks_ container from shub://TomHarrop/singularity-containers:racon-chunks_0.0.2.
+If Singularity_ is available, download and run the racon_chunks_ container from shub://TomHarrop/singularity-containers:racon-chunks_0.0.3.
 
 Otherwise, the following must be installed:
 
