@@ -12,10 +12,12 @@ If Singularity_ is available, download and run the racon_chunks_ container.
 
 Otherwise, the following must be installed:
 
-* ``racon``
-* ``samtools``
-* ``bwa``
-* ``bbmap``
+* ``Python`` 3.7.3 with ``biopython`` 1.73
+* ``samtools`` 1.9 with ``htslib`` 1.9
+* ``bwa`` 0.7.17-r1188
+* ``bbmap`` 38.45
+* ``racon`` 1.3.2
+
 
 Installation
 ------------
