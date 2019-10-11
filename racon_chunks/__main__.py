@@ -73,7 +73,7 @@ def parse_arguments():
         metavar='int',
         type=int,
         dest='times',
-        default=default_wait)
+        default=default_times)
     default_fraction = 1.0
     parser.add_argument(
         '--fraction',
