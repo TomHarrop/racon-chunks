@@ -65,6 +65,15 @@ def parse_arguments():
         type=int,
         dest='wait',
         default=default_wait)
+    default_times = 3
+    parser.add_argument(
+        '--restart_times',
+        help=(('number of times to restart failing jobs. '
+               'Default: %i') % default_times),
+        metavar='int',
+        type=int,
+        dest='times',
+        default=default_wait)
     default_fraction = 1.0
     parser.add_argument(
         '--fraction',
@@ -108,6 +117,7 @@ def main():
         snakefile=snakefile,
         config=args,
         cores=args['threads'],
+        restart_times=args['times'],
         lock=False,
         printreason=True,
         printshellcmds=True,
