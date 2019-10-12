@@ -16,7 +16,7 @@ Otherwise, the following must be installed:
 * ``samtools`` 1.9 with ``htslib`` 1.9
 * ``bwa`` 0.7.17-r1188
 * ``bbmap`` 38.45
-* ``racon`` 1.3.2
+* ``racon`` ededb83
 
 
 Installation

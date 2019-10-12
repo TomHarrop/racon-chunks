@@ -112,16 +112,24 @@ From: ubuntu:19.04
     cp -r bbmap-install/* /usr/local/bin/
     rm -rf bbmap.tar.gz bbmap-install
 
-    # racon
-    mkdir racon
-    wget -O "racon.tar.gz" \
-        --no-check-certificate \
-        https://github.com/lbcb-sci/racon/releases/download/1.4.7/racon-v1.4.7.tar.gz
-    tar -zxf racon.tar.gz \
-        -C racon \
-        --strip-components 1
+    # racon release
+    # mkdir racon
+    # wget -O "racon.tar.gz" \
+    #     --no-check-certificate \
+    #     https://github.com/lbcb-sci/racon/releases/download/1.4.7/racon-v1.4.7.tar.gz
+    # tar -zxf racon.tar.gz \
+    #     -C racon \
+    #     --strip-components 1
+    # cd racon || exit 1
 
+    # racon master
+    git clone --recursive \
+        https://github.com/lbcb-sci/racon.git \
+        /racon
     cd racon || exit 1
+    git checkout ededb83
+
+    # build and install    
     mkdir build && cd build || exit 1
     cmake \
         -DCMAKE_BUILD_TYPE=Release \

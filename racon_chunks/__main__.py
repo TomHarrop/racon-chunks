@@ -48,7 +48,7 @@ def parse_arguments():
         type=int,
         dest='threads',
         default=default_threads)
-    default_chunks = 10
+    default_chunks = 2000
     parser.add_argument(
         '--chunks',
         help=('Number of chunks. Default: %i' % default_chunks),
