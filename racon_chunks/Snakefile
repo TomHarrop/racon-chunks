@@ -3,6 +3,7 @@
 import multiprocessing
 import os
 import shutil
+import psutil
 
 
 ###########
@@ -223,7 +224,8 @@ rule partition:
                     chunk=all_chunks))
     params:
         outfile = os.path.join(outdir, '010_genome-chunks/chunk_%.fasta'),
-        ways = n_chunks
+        ways = n_chunks,
+        mem_gb = int(psutil.virtual_memory().free//2e9)
     log:
         os.path.join(logdir, '010_genome-chunks/partition.log')
     benchmark:
@@ -237,6 +239,7 @@ rule partition:
         'in={input} '
         'out={params.outfile} '
         'ways={params.ways} '
+        '-Xmx={params.mem_gb}g '
         '2> {log}'
 
 # sort and index the bwa aln.sam file
