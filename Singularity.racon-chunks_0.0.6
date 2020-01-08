@@ -1,15 +1,15 @@
 Bootstrap: docker
-From: ubuntu:19.04
+From: ubuntu:19.10
 
 %help
     Container for racon-chunks
     https://github.com/tomharrop/racon-chunks
 
-    Python 3.7.3 with biopython 1.73
+    Python 3.7.5 with biopython 1.73
     samtools 1.9 using htslib 1.9
     bwa 0.7.17-r1188
-    bbmap 38.45
-    racon 1.4.7
+    bbmap 38.50b
+    racon 1.4.10
 
 %labels
     MAINTAINER "Tom Harrop"
@@ -19,8 +19,25 @@ From: ubuntu:19.04
 
 %environment
     export PATH="${PATH}:/racon/build/bin"
-
+    export LC_ALL=C
+    
 %post
+    # faster apt downloads
+    export DEBIAN_FRONTEND=noninteractive
+    export LC_ALL=C
+    (
+        . /etc/os-release
+        cat << _EOF_ > mirror.txt
+deb mirror://mirrors.ubuntu.com/mirrors.txt ${UBUNTU_CODENAME} main restricted universe multiverse
+deb mirror://mirrors.ubuntu.com/mirrors.txt ${UBUNTU_CODENAME}-updates main restricted universe multiverse
+deb mirror://mirrors.ubuntu.com/mirrors.txt ${UBUNTU_CODENAME}-backports main restricted universe multiverse
+deb mirror://mirrors.ubuntu.com/mirrors.txt ${UBUNTU_CODENAME}-security main restricted universe multiverse
+
+_EOF_
+        mv /etc/apt/sources.list /etc/apt/sources.list.bak
+        cat mirror.txt /etc/apt/sources.list.bak > /etc/apt/sources.list
+    )
+
     # dependencies
     apt-get update
     apt-get install -y \
@@ -30,7 +47,6 @@ From: ubuntu:19.04
         default-jre \
         gawk \
         git \
-        language-pack-en \
         libbz2-dev  \
         liblzma-dev \
         libncurses-dev \
@@ -38,20 +54,12 @@ From: ubuntu:19.04
         wget \
         zlib1g-dev 
 
-    # python + biopython
+    # python + biopython + racon_chunks
     /usr/bin/pip3 install --upgrade pip
     /usr/local/bin/pip3 install \
-        biopython==1.73
-
-    # datrie
-    /usr/bin/pip3 install \
+        biopython==1.73 \
+        git+git://github.com/tomharrop/racon-chunks.git@v0.0.6 \
         git+https://github.com/pytries/datrie.git@3e22a27ca0104fe3c62b3251c0b75c281f089e43
-
-    # racon-chunks
-    /usr/local/bin/pip3 \
-        install \
-        git+git://github.com/tomharrop/racon-chunks.git@v0.0.5
-
     update-alternatives \
         --install /usr/bin/python \
         python \
@@ -103,7 +111,7 @@ From: ubuntu:19.04
 
     # bbmap
     wget -O "bbmap.tar.gz" \
-        "https://sourceforge.net/projects/bbmap/files/BBMap_38.45.tar.gz"
+        "https://sourceforge.net/projects/bbmap/files/BBMap_38.50b.tar.gz"
     mkdir bbmap-install
     tar -zxf bbmap.tar.gz \
         -C bbmap-install \
@@ -112,22 +120,12 @@ From: ubuntu:19.04
     cp -r bbmap-install/* /usr/local/bin/
     rm -rf bbmap.tar.gz bbmap-install
 
-    # racon release
-    # mkdir racon
-    # wget -O "racon.tar.gz" \
-    #     --no-check-certificate \
-    #     https://github.com/lbcb-sci/racon/releases/download/1.4.7/racon-v1.4.7.tar.gz
-    # tar -zxf racon.tar.gz \
-    #     -C racon \
-    #     --strip-components 1
-    # cd racon || exit 1
-
     # racon master
-    git clone --recursive \
-        https://github.com/lbcb-sci/racon.git \
-        /racon
+    git clone \
+        https://github.com/lbcb-sci/racon.git
     cd racon || exit 1
-    git checkout ededb83
+    git checkout 1.4.10
+    git submodule update --init --recursive || true     # have to allow fail
 
     # build and install    
     mkdir build && cd build || exit 1
